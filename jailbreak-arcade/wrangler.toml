@@ -10,3 +10,9 @@ compatibility_flags = ["nodejs_compat"]
 binding = "JAILBREAK_KV"
 id = "17068f43543b436cb4cbde2a295e84c8"
 preview_id = "8f041ea26f6349668a23deed6c544eda"
+
+# Used by Astro sessions (auto-injected by @astrojs/cloudflare).
+# Bound explicitly here so Wrangler doesn't try to auto-provision on each deploy.
+[[kv_namespaces]]
+binding = "SESSION"
+id = "af107780e2fc4943891a34efe2abfd76"
