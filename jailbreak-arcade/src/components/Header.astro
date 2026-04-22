@@ -1,0 +1,28 @@
+---
+const navLinks = [
+  { label: 'Home', href: '/' },
+  { label: 'Arcade', href: '/arcade' },
+  { label: 'About', href: '/about' },
+];
+---
+
+<header class="border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-50">
+  <nav class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 font-mono font-bold text-lg tracking-tight">
+      <span class="text-accent">⌘</span>
+      <span>Jailbreak Arcade</span>
+    </a>
+    <ul class="flex items-center gap-6 text-sm">
+      {navLinks.map(link => (
+        <li>
+          <a
+            href={link.href}
+            class="text-text-secondary hover:text-text-primary transition-colors"
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</header>

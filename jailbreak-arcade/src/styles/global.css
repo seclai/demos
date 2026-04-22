@@ -1,0 +1,411 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-surface: #0a0a0f;
+  --color-surface-raised: #12121a;
+  --color-surface-overlay: #1a1a25;
+  --color-border: #2a2a3a;
+  --color-text-primary: #e8e8f0;
+  --color-text-secondary: #8888a0;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-verdict-safe: #22c55e;
+  --color-verdict-defended: #eab308;
+  --color-verdict-broken: #ef4444;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-satoshi: 'Satoshi', system-ui, sans-serif;
+  --font-serif-display: 'Instrument Serif', serif;
+  --font-inter: 'InterVariable', system-ui, sans-serif;
+
+  /* Landing page tokens */
+  --color-lp-paper: oklch(0.975 0.01 75);
+  --color-lp-paper-2: oklch(0.955 0.012 75);
+  --color-lp-ink: oklch(0.16 0.02 60);
+  --color-lp-ink-soft: oklch(0.38 0.015 60);
+  --color-lp-rule: oklch(0.88 0.012 70);
+  --color-lp-break: oklch(0.58 0.20 25);
+  --color-lp-break-soft: oklch(0.94 0.05 30);
+  --color-lp-judge: oklch(0.55 0.13 145);
+  --color-lp-judge-soft: oklch(0.93 0.06 145);
+  --color-lp-warn: oklch(0.72 0.16 75);
+  --color-lp-dots: oklch(0.85 0.01 70);
+  --color-lp-ticker-handle: oklch(0.75 0.02 75);
+
+  --font-lp-display: 'Fraunces', 'Instrument Serif', Georgia, serif;
+  --font-lp-sans: 'Inter', -apple-system, system-ui, sans-serif;
+
+  /* Arcade page tokens (shared with landing) */
+  --color-ac-paper: oklch(0.975 0.01 75);
+  --color-ac-paper-2: oklch(0.955 0.012 75);
+  --color-ac-paper-3: oklch(0.93 0.014 75);
+  --color-ac-ink: oklch(0.16 0.02 60);
+  --color-ac-ink-soft: oklch(0.38 0.015 60);
+  --color-ac-ink-mute: oklch(0.55 0.012 60);
+  --color-ac-rule: oklch(0.88 0.012 70);
+  --color-ac-rule-2: oklch(0.82 0.014 70);
+  --color-ac-break: oklch(0.58 0.20 25);
+  --color-ac-break-soft: oklch(0.94 0.05 30);
+  --color-ac-judge: oklch(0.55 0.13 145);
+  --color-ac-judge-soft: oklch(0.93 0.06 145);
+  --color-ac-warn: oklch(0.72 0.16 75);
+
+  --font-ac-display: 'Fraunces', Georgia, serif;
+  --font-ac-sans: 'Inter', system-ui, sans-serif;
+
+  --animate-ac-slide-up: ac-slide-up 0.3s ease-out;
+  --animate-ac-celebrate: ac-celebrate 0.4s cubic-bezier(.2,.8,.2,1);
+  --animate-ac-shimmer: ac-shimmer 1s ease-in-out infinite;
+  --animate-ac-bounce: ac-bounce 1.2s infinite ease-in-out;
+  --animate-ac-pulse-g: ac-pulse-g 1.6s ease-in-out infinite;
+
+  --animate-lp-ticker: lp-ticker 60s linear infinite;
+  --animate-lp-pulse: lp-pulse 1.8s ease-in-out infinite;
+  --animate-lp-pulse-g: lp-pulse-g 1.8s ease-in-out infinite;
+  --animate-lp-strike: lp-strike 1.2s 0.8s cubic-bezier(.2,.8,.2,1) forwards;
+  --animate-lp-shimmer: lp-shimmer 1.1s ease-in-out infinite;
+  --animate-lp-blink: lp-blink 1s steps(2) infinite;
+  --animate-lp-bounce: lp-bounce 1.2s infinite ease-in-out;
+}
+
+html {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: #fff;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100dvh;
+}
+
+/* Landing page animations */
+@keyframes lp-ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes lp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-lp-break) 60%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in oklab, var(--color-lp-break) 0%, transparent); }
+}
+@keyframes lp-pulse-g {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-lp-judge) 60%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-lp-judge) 0%, transparent); }
+}
+@keyframes lp-strike {
+  to { transform: scaleX(1); }
+}
+@keyframes lp-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes lp-blink {
+  50% { opacity: 0; }
+}
+@keyframes lp-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Landing page base – selection color override */
+.landing ::selection {
+  background: var(--color-lp-break);
+  color: var(--color-lp-paper);
+}
+
+/* Scrollbar styling for demo body */
+.landing .demo-scroll::-webkit-scrollbar { width: 8px; }
+.landing .demo-scroll::-webkit-scrollbar-thumb { background: oklch(0.88 0.01 70); border-radius: 4px; }
+
+/* Ticker dot glow */
+.lp-ticker-dot {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-lp-break) 30%, transparent);
+}
+.lp-ticker-dot-ok {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-lp-judge) 30%, transparent);
+}
+
+/* Ticker tag border colors using color-mix */
+.lp-ticker-tag-broken {
+  border-color: color-mix(in oklab, var(--color-lp-break) 60%, transparent);
+}
+.lp-ticker-tag-held {
+  border-color: color-mix(in oklab, var(--color-lp-judge) 60%, transparent);
+}
+.lp-ticker-tag-default {
+  border-color: color-mix(in oklab, var(--color-lp-paper) 25%, transparent);
+}
+
+/* Nav glass effect */
+.lp-nav-glass {
+  background: color-mix(in oklab, var(--color-lp-paper) 88%, transparent);
+}
+
+/* Step viz diagonal hatching */
+.lp-step-viz-bg {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 10px, oklch(0.94 0.01 70) 10px 11px),
+    var(--color-lp-paper-2);
+}
+
+/* Verdict mixed background */
+.lp-verdict-bg {
+  background: color-mix(in oklab, var(--color-lp-paper) 50%, var(--color-lp-paper-2));
+}
+
+/* Judge reasoning background */
+.lp-reasoning-bg {
+  background: color-mix(in oklab, var(--color-lp-paper-2) 80%, transparent);
+}
+
+/* Mini-row win background */
+.lp-mini-row-win {
+  background: color-mix(in oklab, var(--color-lp-break) 5%, var(--color-lp-paper));
+}
+
+/* Final CTA radial gradient */
+.lp-final-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, color-mix(in oklab, var(--color-lp-break) 25%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, color-mix(in oklab, var(--color-lp-judge) 15%, transparent) 0%, transparent 60%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Break word underline animation */
+.lp-break-underline::after {
+  content: "";
+  position: absolute;
+  left: -2%; right: -2%;
+  bottom: 14%;
+  height: 3px;
+  background: var(--color-lp-break);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: lp-strike 1.2s 0.8s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+/* Eyebrow pulsing dot */
+.lp-eyebrow-dot::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-lp-break);
+  animation: lp-pulse 1.8s ease-in-out infinite;
+}
+
+/* Judge online dot */
+.lp-judge-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-lp-judge);
+  animation: lp-pulse-g 1.8s ease-in-out infinite;
+}
+
+/* Demo status dot */
+.lp-status-dot::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-lp-judge);
+}
+
+/* Bot name dot */
+.lp-bot-dot::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--color-lp-ink);
+}
+
+/* Section label line */
+.lp-sec-line::before {
+  content: ""; width: 24px; height: 1px;
+  background: var(--color-lp-break);
+}
+
+/* Judge arrow */
+.lp-judge-arrow::after {
+  content: "";
+  position: absolute;
+  right: -1px; top: -3px;
+  width: 0; height: 0;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  border-left: 5px solid var(--color-lp-ink-soft);
+}
+
+/* Cursor blink */
+.lp-cursor::after {
+  content: "\u258b";
+  margin-left: 2px;
+  animation: lp-blink 1s steps(2) infinite;
+  color: var(--color-lp-break);
+}
+
+/* Rule card hover shows hint */
+.rule-card-hover:hover .lp-rule-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Typing bounce delays */
+.lp-bounce-delay-1 { animation-delay: 0.15s; }
+.lp-bounce-delay-2 { animation-delay: 0.3s; }
+
+/* Primary button shadow */
+.lp-btn-shadow {
+  box-shadow: 0 1px 0 oklch(0.3 0.02 60), 0 10px 30px -12px oklch(0.16 0.02 60 / 0.4);
+}
+
+/* Demo card shadow */
+.lp-demo-shadow {
+  box-shadow: 0 30px 60px -40px oklch(0.16 0.02 60 / 0.25), 0 2px 0 oklch(0.9 0.012 70);
+}
+
+/* Nav brand mark inner glow */
+.lp-brand-glow::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-lp-paper) 20%, transparent);
+}
+
+/* ================================================ */
+/* ARCADE CHAT PAGE                                  */
+/* ================================================ */
+@keyframes ac-slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ac-celebrate {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes ac-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes ac-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+@keyframes ac-pulse-g {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ac-judge) 50%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-ac-judge) 0%, transparent); }
+}
+@keyframes ac-trace-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.arcade-shell {
+  font-family: var(--font-ac-sans);
+  background: var(--color-ac-paper);
+  color: var(--color-ac-ink);
+  -webkit-font-smoothing: antialiased;
+}
+.arcade-shell ::selection {
+  background: var(--color-ac-break);
+  color: var(--color-ac-paper);
+}
+
+/* Topbar glass */
+.ac-topbar-glass {
+  background: color-mix(in oklab, var(--color-ac-paper) 94%, transparent);
+}
+
+/* Judge online chip */
+.ac-judge-chip {
+  color: var(--color-ac-judge);
+  border-color: color-mix(in oklab, var(--color-ac-judge) 40%, var(--color-ac-rule));
+}
+.ac-judge-dot {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ac-judge) 30%, transparent);
+}
+
+/* Sidebar run verdict chips */
+.ac-run-held { background: color-mix(in oklab, var(--color-ac-judge) 15%, var(--color-ac-paper)); color: var(--color-ac-judge); }
+.ac-run-broken { background: color-mix(in oklab, var(--color-ac-break) 18%, var(--color-ac-paper)); color: var(--color-ac-break); }
+
+/* HP segment states */
+.ac-hp-broken { background: var(--color-ac-break) !important; }
+.ac-hp-tested { background: color-mix(in oklab, var(--color-ac-warn) 60%, var(--color-ac-paper-2)) !important; }
+
+/* Verdict left stripe */
+.ac-verdict-stripe-broken { background: var(--color-ac-break); }
+.ac-verdict-stripe-held { background: var(--color-ac-judge); }
+.ac-verdict-stripe-judging { background: var(--color-ac-warn); }
+
+/* Verdict quote block */
+.ac-quote-broken {
+  border-left: 3px solid var(--color-ac-break);
+  background: color-mix(in oklab, var(--color-ac-break) 5%, var(--color-ac-paper));
+}
+.ac-quote-held {
+  border-left: 3px solid var(--color-ac-judge);
+  background: color-mix(in oklab, var(--color-ac-break) 5%, var(--color-ac-paper));
+}
+
+/* Celebrate banner */
+.ac-celebrate-bg {
+  border: 2px dashed var(--color-ac-break);
+  background: color-mix(in oklab, var(--color-ac-break) 6%, var(--color-ac-paper));
+}
+
+/* Composer shadow */
+.ac-composer-shadow {
+  box-shadow: 0 16px 40px -20px oklch(0.16 0.02 60 / 0.25);
+}
+.ac-composer-focus {
+  box-shadow: 0 20px 48px -20px oklch(0.16 0.02 60 / 0.35);
+}
+
+/* Panel slide shadow */
+.ac-panel-shadow {
+  box-shadow: -20px 0 40px -20px oklch(0.16 0.02 60 / 0.15);
+}
+
+/* Share modal backdrop */
+.ac-modal-backdrop {
+  background: color-mix(in oklab, var(--color-ac-ink) 40%, transparent);
+}
+
+/* Share preview glow */
+.ac-share-glow::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 40%, color-mix(in oklab, var(--color-ac-break) 30%, transparent), transparent 60%);
+}
+
+/* Rule card broken state */
+.ac-rule-broken-bg { border-color: var(--color-ac-break); background: color-mix(in oklab, var(--color-ac-break) 6%, var(--color-ac-paper)); }
+.ac-rule-tested-bg { border-color: var(--color-ac-warn); background: color-mix(in oklab, var(--color-ac-warn) 4%, var(--color-ac-paper)); }
+
+/* Scrollbar for arcade */
+.ac-scroll::-webkit-scrollbar { width: 8px; }
+.ac-scroll::-webkit-scrollbar-thumb { background: var(--color-ac-rule-2); border-radius: 4px; }
+.ac-scroll-thin::-webkit-scrollbar { width: 6px; }
+.ac-scroll-thin::-webkit-scrollbar-thumb { background: var(--color-ac-rule-2); border-radius: 3px; }
+.ac-scroll-none::-webkit-scrollbar { display: none; }
+.ac-scroll-none { scrollbar-width: none; }
+
+/* Trace line animation */
+.ac-trace-line {
+  opacity: 0;
+  animation: ac-trace-in 0.3s forwards;
+}
+
+/* Bot name dot pseudo */
+.ac-bot-dot::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--color-ac-ink);
+}
+
+/* Bounce delays for typing */
+.ac-bounce-d1 { animation-delay: 0.15s; }
+.ac-bounce-d2 { animation-delay: 0.3s; }
+
+/* Composer gradient fade */
+.ac-composer-gradient {
+  background: linear-gradient(to top, var(--color-ac-paper) 60%, transparent);
+}

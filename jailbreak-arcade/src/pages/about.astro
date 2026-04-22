@@ -1,0 +1,70 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="About — Jailbreak Arcade">
+	<Header />
+	<main class="max-w-3xl mx-auto px-4 py-12 space-y-12">
+		<section>
+			<h1 class="font-mono text-3xl font-bold mb-4">About Jailbreak Arcade</h1>
+			<p class="text-text-secondary leading-relaxed">
+				Jailbreak Arcade is an interactive demo that showcases <a href="https://seclai.com" class="text-accent hover:text-accent-hover transition-colors" target="_blank" rel="noopener">Seclai's</a> AI governance capabilities. It lets anyone test the limits of an AI chatbot — and see how governance layers protect it from misuse.
+			</p>
+		</section>
+
+		<section>
+			<h2 class="font-mono text-xl font-bold mb-3">What is BankBot?</h2>
+			<p class="text-text-secondary leading-relaxed">
+				BankBot is a fictional AI banking assistant. It's allowed to discuss general banking topics, help schedule branch appointments, and explain card replacement procedures. It is <strong class="text-text-primary">not</strong> allowed to give personalized financial advice, discuss specific accounts, promise refunds, speak negatively about the bank, respond in non-English languages, claim to be human, fabricate information, or ignore its instructions.
+			</p>
+		</section>
+
+		<section>
+			<h2 class="font-mono text-xl font-bold mb-3">How does Seclai governance work?</h2>
+			<p class="text-text-secondary leading-relaxed mb-4">
+				Seclai's governance layer sits between the AI agent and the user. Every response is automatically reviewed against configurable policies before it's delivered. If a policy violation is detected, the response is blocked and replaced with a governance notice.
+			</p>
+			<div class="bg-surface-raised border border-border rounded-lg p-6 font-mono text-sm space-y-2">
+				<p class="text-accent">// Simplified flow</p>
+				<p><span class="text-text-secondary">1.</span> User sends message → BankBot agent</p>
+				<p><span class="text-text-secondary">2.</span> BankBot generates response</p>
+				<p><span class="text-text-secondary">3.</span> Seclai governance reviews response</p>
+				<p><span class="text-text-secondary">4.</span> If OK → deliver to user</p>
+				<p><span class="text-text-secondary">5.</span> If violation → block + return notice</p>
+				<p><span class="text-text-secondary">6.</span> Judge agent scores the exchange</p>
+			</div>
+		</section>
+
+		<section>
+			<h2 class="font-mono text-xl font-bold mb-3">Architecture</h2>
+			<ul class="space-y-3 text-text-secondary text-sm">
+				<li class="flex gap-3">
+					<span class="font-mono text-accent shrink-0">Frontend</span>
+					<span>Astro 6 with React islands, Tailwind CSS v4, deployed on Cloudflare Pages</span>
+				</li>
+				<li class="flex gap-3">
+					<span class="font-mono text-accent shrink-0">BankBot</span>
+					<span>Seclai agent with a banking persona prompt + governance policies</span>
+				</li>
+				<li class="flex gap-3">
+					<span class="font-mono text-accent shrink-0">Judge</span>
+					<span>Separate Seclai agent that evaluates each exchange against BankBot's rules</span>
+				</li>
+				<li class="flex gap-3">
+					<span class="font-mono text-accent shrink-0">Storage</span>
+					<span>Cloudflare KV for leaderboard entries and rate limiting</span>
+				</li>
+			</ul>
+		</section>
+
+		<section>
+			<h2 class="font-mono text-xl font-bold mb-3">Disclaimer</h2>
+			<p class="text-text-secondary leading-relaxed text-sm">
+				This is a demonstration application. BankBot is entirely fictional and does not have access to any real banking systems, accounts, or financial data. All interactions are logged for leaderboard purposes but no personally identifiable information is stored — only hashed IP addresses for rate limiting.
+			</p>
+		</section>
+	</main>
+	<Footer />
+</Layout>
