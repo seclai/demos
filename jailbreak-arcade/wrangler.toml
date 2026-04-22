@@ -1,7 +1,10 @@
 name = "jailbreak-arcade"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "./dist"
+
+# Deployed as a Cloudflare Worker (Astro SSR via @astrojs/cloudflare).
+# The adapter generates the entry + assets config into ./dist/server/wrangler.json
+# at build time and merges these bindings in.
 
 [[kv_namespaces]]
 binding = "JAILBREAK_KV"
