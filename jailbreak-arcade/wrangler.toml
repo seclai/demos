@@ -8,5 +8,5 @@ compatibility_flags = ["nodejs_compat"]
 
 [[kv_namespaces]]
 binding = "JAILBREAK_KV"
-id = "YOUR_KV_NAMESPACE_ID"
-preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
+id = "17068f43543b436cb4cbde2a295e84c8"
+preview_id = "8f041ea26f6349668a23deed6c544eda"
