@@ -7,3 +7,4 @@ Core work still to do before this is production-ready:
 - [ ] Add auth (GitHub OAuth via Lucia, or Clerk)
 - [ ] Add user profiles: handle, avatar, attempt history page
 - [ ] Persist all attempts (not just Broken) linked to user_id
+- [ ] Add light mode / dark mode toggle (system preference + manual override, persisted)
