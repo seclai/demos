@@ -1,5 +1,8 @@
 # Jailbreak Arcade
 
+<img width="2400" height="1260" alt="og" src="https://github.com/user-attachments/assets/a839b325-9c04-44e6-92a1-e98c78b117d6" />
+
+
 An interactive demo showcasing [Seclai](https://seclai.com) AI governance. Try to jailbreak **BankBot** — a fictional AI banking assistant — and see how governance policies protect it.
 
 ## Stack
