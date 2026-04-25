@@ -27,7 +27,16 @@ export function ChatMessage({ exchange, isLoading }: Props) {
             </div>
           ) : (
             <>
-              <p className="text-sm text-text-primary whitespace-pre-wrap">{exchange.botResponse}</p>
+              {exchange.verdict === 'Defended' ? (
+                <div className="flex items-start gap-2 text-sm text-text-secondary italic">
+                  <span aria-hidden className="text-accent">🛡️</span>
+                  <p className="whitespace-pre-wrap">
+                    Response withheld by Seclai governance before reaching you.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-text-primary whitespace-pre-wrap">{exchange.botResponse}</p>
+              )}
               <div className="flex items-center gap-3 pt-1">
                 <VerdictBadge verdict={exchange.verdict} />
                 {exchange.reasoning && (

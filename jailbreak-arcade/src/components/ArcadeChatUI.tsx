@@ -461,6 +461,20 @@ export function ArcadeChatUI() {
                 return <div key={i} className="self-end max-w-[86%] text-[15px] leading-relaxed px-4 py-3 rounded-2xl rounded-br-[5px] bg-ac-ink text-ac-paper animate-ac-slide-up">{m.text}</div>;
               }
               if (m.kind === 'bot') {
+                const withheld = m.text.includes('[governance: response withheld]') || m.text.includes('[governance:response withheld]');
+                if (withheld) {
+                  return (
+                    <div key={i} className="self-start max-w-[88%] text-[14px] leading-relaxed px-4 py-3 rounded-2xl rounded-bl-[5px] bg-ac-paper-2 border border-dashed border-ac-rule animate-ac-slide-up">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-ac-ink-mute mb-1.5 flex items-center gap-1.5">
+                        <span aria-hidden>🛡️</span>
+                        Seclai governance
+                      </div>
+                      <p className="text-ac-ink-soft italic">
+                        Response withheld before reaching you.
+                      </p>
+                    </div>
+                  );
+                }
                 return (
                   <div key={i} className="self-start max-w-[88%] text-[15px] leading-relaxed px-4 py-3 rounded-2xl rounded-bl-[5px] bg-ac-paper-2 text-ac-ink border border-ac-rule animate-ac-slide-up">
                     <div className="ac-bot-dot font-mono text-[10px] uppercase tracking-[0.12em] text-ac-ink-mute mb-1.5 flex items-center gap-1.5">BankBot</div>
