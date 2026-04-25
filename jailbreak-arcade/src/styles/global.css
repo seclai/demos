@@ -1,5 +1,19 @@
 @import 'tailwindcss';
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.landing [id] {
+  scroll-margin-top: 80px;
+}
+
 @theme {
   --color-surface: #0a0a0f;
   --color-surface-raised: #12121a;
