@@ -72,9 +72,11 @@ html {
   color: var(--color-text-primary);
 }
 
-::selection {
-  background-color: var(--color-accent);
-  color: #fff;
+/* Light, on-brand text selection for landing + arcade (paper-based pages) */
+.landing ::selection,
+.arcade-shell ::selection {
+  background: var(--color-ac-paper-3);
+  color: var(--color-ac-ink);
 }
 
 body {
@@ -108,12 +110,6 @@ body {
 @keyframes lp-bounce {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
   40% { transform: translateY(-4px); opacity: 1; }
-}
-
-/* Landing page base – selection color override */
-.landing ::selection {
-  background: var(--color-lp-break);
-  color: var(--color-lp-paper);
 }
 
 /* Scrollbar styling for demo body */
@@ -304,11 +300,6 @@ body {
   color: var(--color-ac-ink);
   -webkit-font-smoothing: antialiased;
 }
-.arcade-shell ::selection {
-  background: var(--color-ac-break);
-  color: var(--color-ac-paper);
-}
-
 /* Topbar glass */
 .ac-topbar-glass {
   background: color-mix(in oklab, var(--color-ac-paper) 94%, transparent);

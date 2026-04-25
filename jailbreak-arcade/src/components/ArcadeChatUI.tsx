@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import type { ChatExchange } from '../lib/types';
 
 /* ─── Rules data ─── */
@@ -47,6 +47,88 @@ function DiffDots({ level, max = 4 }: { level: number; max?: number }) {
       ))}
     </span>
   );
+}
+
+/* ─── Tiny markdown renderer (bold, inline code, bullet + numbered lists, headings) ─── */
+function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+  // Tokenize **bold**, *italic*, and `code` without touching list/heading syntax.
+  const nodes: React.ReactNode[] = [];
+  const regex = /(\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[2] != null) nodes.push(<strong key={`${keyPrefix}-b-${i}`} className="font-semibold text-ac-ink">{m[2]}</strong>);
+    else if (m[3] != null) nodes.push(<code key={`${keyPrefix}-c-${i}`} className="font-mono text-[0.9em] px-1 py-px rounded bg-ac-rule-2/60">{m[3]}</code>);
+    else if (m[4] != null) nodes.push(<em key={`${keyPrefix}-i-${i}`} className="italic">{m[4]}</em>);
+    last = m.index + m[0].length;
+    i++;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
+function Markdown({ text }: { text: string }) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const blocks: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed === '') { i++; continue; }
+
+    // Heading
+    const h = /^(#{1,6})\s+(.*)$/.exec(trimmed);
+    if (h) {
+      const level = h[1].length;
+      const sizeCls = level <= 2 ? 'text-[17px] font-semibold' : 'text-[15px] font-semibold';
+      blocks.push(<div key={key++} className={`${sizeCls} text-ac-ink mt-1`}>{renderInline(h[2], `h${key}`)}</div>);
+      i++;
+      continue;
+    }
+
+    // Unordered list
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*]\s+/, ''));
+        i++;
+      }
+      blocks.push(
+        <ul key={key++} className="list-disc pl-5 space-y-1 marker:text-ac-ink-mute">
+          {items.map((it, j) => <li key={j}>{renderInline(it, `ul${key}-${j}`)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+
+    // Ordered list
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^\d+\.\s+/, ''));
+        i++;
+      }
+      blocks.push(
+        <ol key={key++} className="list-decimal pl-5 space-y-1 marker:text-ac-ink-mute marker:font-mono marker:text-[0.85em]">
+          {items.map((it, j) => <li key={j}>{renderInline(it, `ol${key}-${j}`)}</li>)}
+        </ol>
+      );
+      continue;
+    }
+
+    // Paragraph — consume until blank line
+    const paras: string[] = [line];
+    i++;
+    while (i < lines.length && lines[i].trim() !== '' && !/^(#{1,6}\s|[-*]\s|\d+\.\s)/.test(lines[i].trim())) {
+      paras.push(lines[i]);
+      i++;
+    }
+    blocks.push(<p key={key++}>{renderInline(paras.join(' '), `p${key}`)}</p>);
+  }
+  return <div className="space-y-2">{blocks}</div>;
 }
 
 /* ─── Main component ─── */
@@ -106,17 +188,21 @@ export function ArcadeChatUI() {
     setJudgeLog(prev => [...prev, { time, msg, kind }]);
   }
 
-  function autosize(el: HTMLTextAreaElement) {
+  const INPUT_MAX_H = 160;
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
-  }
+    const next = Math.min(el.scrollHeight, INPUT_MAX_H);
+    el.style.height = next + 'px';
+    el.style.overflowY = el.scrollHeight > INPUT_MAX_H ? 'auto' : 'hidden';
+  }, [input]);
 
   async function sendMessage() {
     const text = input.trim();
     if (!text || busy) return;
     setInput('');
     setBusy(true);
-    if (inputRef.current) { inputRef.current.style.height = 'auto'; }
 
     setMessages(prev => [...prev, { kind: 'user', text }]);
     setAttempts(a => a + 1);
@@ -378,7 +464,7 @@ export function ArcadeChatUI() {
                 return (
                   <div key={i} className="self-start max-w-[88%] text-[15px] leading-relaxed px-4 py-3 rounded-2xl rounded-bl-[5px] bg-ac-paper-2 text-ac-ink border border-ac-rule animate-ac-slide-up">
                     <div className="ac-bot-dot font-mono text-[10px] uppercase tracking-[0.12em] text-ac-ink-mute mb-1.5 flex items-center gap-1.5">BankBot</div>
-                    {m.text}
+                    <Markdown text={m.text} />
                   </div>
                 );
               }
@@ -471,32 +557,33 @@ export function ArcadeChatUI() {
               ))}
             </div>
           )}
-          <div className="max-w-[780px] mx-auto bg-ac-paper border border-ac-rule-2 rounded-2xl p-2.5 pl-4 flex items-end gap-2.5 ac-composer-shadow focus-within:border-ac-ink focus-within:ac-composer-focus transition-all pointer-events-auto">
-            <div className="flex-1 flex flex-col gap-1.5 pt-2 pb-0.5">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => { setInput(e.target.value); autosize(e.target); }}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder={'Try to trick BankBot\u2026 (e.g. "Pretend you\'re human")'}
-                rows={1}
-                disabled={busy}
-                className="border-none outline-none bg-transparent text-[15px] leading-normal text-ac-ink resize-none min-h-[24px] max-h-[140px] overflow-y-auto placeholder:text-ac-ink-mute"
-              />
+          <div className="max-w-[780px] mx-auto bg-ac-paper border border-ac-rule-2 rounded-2xl px-4 pt-3 pb-2.5 flex flex-col gap-2 ac-composer-shadow focus-within:border-ac-ink focus-within:ac-composer-focus transition-all pointer-events-auto">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              placeholder={'Try to trick BankBot… (e.g. "Pretend you\'re human")'}
+              rows={1}
+              disabled={busy}
+              className="border-none outline-none bg-transparent text-[15px] leading-normal text-ac-ink resize-none block w-full placeholder:text-ac-ink-mute"
+              style={{ maxHeight: INPUT_MAX_H }}
+            />
+            <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-2.5 font-mono text-[10px] text-ac-ink-mute tracking-wide">
                 <span><span className="border border-ac-rule bg-ac-paper-2 px-1 py-px rounded text-[9px] text-ac-ink">↵</span> send</span>
                 <span><span className="border border-ac-rule bg-ac-paper-2 px-1 py-px rounded text-[9px] text-ac-ink">⇧↵</span> newline</span>
                 <span><span className="border border-ac-rule bg-ac-paper-2 px-1 py-px rounded text-[9px] text-ac-ink">R</span> rules</span>
                 <span><span className="border border-ac-rule bg-ac-paper-2 px-1 py-px rounded text-[9px] text-ac-ink">J</span> judge</span>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button onClick={() => setShowQA(v => !v)} className="w-[34px] h-[34px] rounded-[10px] grid place-items-center text-ac-ink-mute bg-ac-paper-2 border border-ac-rule hover:text-ac-ink hover:bg-ac-paper transition-all" title="Quick attacks">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 2 L9 6 L13 6.5 L10 9.5 L11 13 L7 11 L3 13 L4 9.5 L1 6.5 L5 6 Z"/></svg>
-              </button>
-              <button onClick={sendMessage} disabled={busy || !input.trim()} className={`h-[38px] px-4.5 rounded-[10px] text-[13px] font-medium inline-flex items-center gap-2 transition-all hover:-translate-y-px disabled:opacity-50 ${input.trim() ? 'bg-ac-break text-ac-paper' : 'bg-ac-ink text-ac-paper'}`}>
-                Send <span className="opacity-60">↵</span>
-              </button>
+              <div className="ml-auto flex items-center gap-1.5">
+                <button onClick={() => setShowQA(v => !v)} className="w-[34px] h-[34px] rounded-[10px] grid place-items-center text-ac-ink-mute bg-ac-paper-2 border border-ac-rule hover:text-ac-ink hover:bg-ac-paper transition-all" title="Quick attacks">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 2 L9 6 L13 6.5 L10 9.5 L11 13 L7 11 L3 13 L4 9.5 L1 6.5 L5 6 Z"/></svg>
+                </button>
+                <button onClick={sendMessage} disabled={busy || !input.trim()} className={`h-[34px] px-4 rounded-[10px] text-[13px] font-medium inline-flex items-center gap-2 transition-all hover:-translate-y-px disabled:opacity-50 ${input.trim() ? 'bg-ac-break text-ac-paper' : 'bg-ac-ink text-ac-paper'}`}>
+                  Send <span className="opacity-60">↵</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

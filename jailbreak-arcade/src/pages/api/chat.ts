@@ -1,57 +1,40 @@
 import type { APIRoute } from 'astro';
-import type { Attempt, ChatExchange, JudgeResult, Verdict } from '../../lib/types';
-import { FORBIDDEN_RULES } from '../../lib/bankbot-rules';
+import { env } from 'cloudflare:workers';
+import type { Attempt, ChatExchange, Verdict } from '../../lib/types';
 import { getStorage, hashIP } from '../../lib/storage';
+import { callBankBot, callJudge } from '../../lib/seclai';
 
-// ============================================================
-// TEMPORARY STUB
-// The real integration (BankBot + Judge) needs to be wired up.
-// For now every exchange returns a mocked response so the UI
-// keeps working end-to-end.
-// ============================================================
-
-const STUB_BOT_REPLIES = [
-  "I can help with general banking questions, but I can't discuss specific accounts or give personalized advice.",
-  "I'm BankBot, a demo assistant. I can explain products and policies in general terms.",
-  "For your security, I can't confirm account details. Please visit a branch or call support.",
-  "I follow a strict policy and can only respond in English about general banking topics.",
-];
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function getPlatform() {
+  return { env: env as unknown as Record<string, unknown> };
 }
 
-async function stubBankBot(_input: string): Promise<{ response: string; blocked: boolean }> {
-  // ~15% chance the governance layer would have blocked
-  if (Math.random() < 0.15) {
-    return { response: '[governance: response withheld]', blocked: true };
+interface HistoryItem {
+  user: string;
+  bot: string;
+}
+
+function sanitizeHistory(raw: unknown): HistoryItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: HistoryItem[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const r = item as Record<string, unknown>;
+    const user = typeof r.user === 'string' ? r.user : '';
+    const bot = typeof r.bot === 'string' ? r.bot : '';
+    if (!user && !bot) continue;
+    out.push({ user: user.slice(0, 4000), bot: bot.slice(0, 4000) });
   }
-  return { response: pick(STUB_BOT_REPLIES), blocked: false };
-}
-
-async function stubJudge(_userMessage: string, _botResponse: string): Promise<JudgeResult> {
-  // ~25% chance of a broken verdict for demo traffic
-  if (Math.random() < 0.25) {
-    const rule = pick(FORBIDDEN_RULES);
-    return {
-      broken: true,
-      ruleBroken: rule.id,
-      reasoning: `[STUBBED] The reply appears to violate ${rule.id}.`,
-    };
-  }
-  return { broken: false, ruleBroken: null, reasoning: '[STUBBED] No rule violations detected.' };
-}
-
-function getPlatform(locals: App.Locals) {
-  return (locals as unknown as { runtime?: { env?: { JAILBREAK_KV?: KVNamespace } } }).runtime;
+  // Cap to last 12 — callBankBot further trims to last 6.
+  return out.slice(-12);
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json();
-    const userMessage = body?.message?.trim();
+    const userMessage = typeof body?.message === 'string' ? body.message.trim() : '';
+    const history = sanitizeHistory(body?.history);
 
-    if (!userMessage || typeof userMessage !== 'string') {
+    if (!userMessage) {
       return new Response(JSON.stringify({ error: 'Missing "message" field' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -65,7 +48,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const storage = getStorage(getPlatform(locals));
+    const platform = getPlatform();
+    const storage = getStorage(platform);
 
     // Rate limit check
     const clientIP = request.headers.get('cf-connecting-ip')
@@ -88,7 +72,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await storage.incrementRateLimit(ipHash);
 
     // Step 1: BankBot
-    const { response: botResponse, blocked } = await stubBankBot(userMessage);
+    const { response: botResponse, blocked } = await callBankBot(userMessage, history, platform);
 
     if (blocked) {
       const exchange: ChatExchange = {
@@ -105,7 +89,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Step 2: Judge
-    const judgeResult = await stubJudge(userMessage, botResponse);
+    const judgeResult = await callJudge(userMessage, botResponse, platform);
 
     if (judgeResult.broken) {
       const attemptId = crypto.randomUUID();

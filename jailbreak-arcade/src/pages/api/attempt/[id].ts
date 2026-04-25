@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import { getStorage } from '../../../lib/storage';
 
-export const GET: APIRoute = async ({ params, locals }) => {
+export const GET: APIRoute = async ({ params }) => {
   const { id } = params;
 
   if (!id || !/^[0-9a-f-]{36}$/.test(id)) {
@@ -11,7 +12,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     });
   }
 
-  const platform = (locals as unknown as { runtime?: { env?: { JAILBREAK_KV?: KVNamespace } } }).runtime;
+  const platform = { env };
   const storage = getStorage(platform);
   const attempt = await storage.getAttempt(id);
 
