@@ -1,70 +1,110 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
 ---
 
 <Layout title="About — Jailbreak Arcade">
-	<Header />
-	<main class="max-w-3xl mx-auto px-4 py-12 space-y-12">
+	<div class="landing min-h-dvh bg-lp-paper text-lp-ink font-lp-sans antialiased" style="font-feature-settings:'ss01','cv11'">
+
+	<!-- NAV (matches landing page) -->
+	<nav class="sticky top-0 z-60 lp-nav-glass backdrop-blur-xl border-b border-lp-rule">
+		<div class="max-w-[1280px] mx-auto px-8 grid grid-cols-[1fr_auto_1fr] items-center h-16">
+			<a href="/" class="flex items-center gap-2.5 font-semibold text-[15px] tracking-tight justify-self-start hover:opacity-80 transition-opacity">
+				<div class="w-[26px] h-[26px] rounded-md bg-lp-ink grid place-items-center text-lp-paper font-mono text-sm font-semibold relative lp-brand-glow">J</div>
+				<span>Jailbreak Arcade</span>
+			</a>
+			<div class="hidden md:flex items-center gap-7 text-sm text-lp-ink-soft justify-self-center">
+				<a href="/#how" class="hover:text-lp-ink transition-colors">How it works</a>
+				<a href="/#rules" class="hover:text-lp-ink transition-colors">Rules</a>
+				<a href="/about" class="text-lp-ink transition-colors">About</a>
+			</div>
+			<div class="hidden md:flex items-center gap-3 justify-self-end">
+				<a
+					href="https://github.com/seclai/demos/tree/main/jailbreak-arcade"
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label="View source on GitHub"
+					class="gh-star-btn inline-flex items-center gap-2 bg-lp-ink text-lp-paper py-2 pl-3 pr-3.5 rounded-full text-[13px] font-medium hover:-translate-y-px transition-transform"
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+						<path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.69-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.06 11.06 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.68.8.56C20.71 21.39 24 17.08 24 12 24 5.73 18.27.5 12 .5z" />
+					</svg>
+					<span>GitHub</span>
+				</a>
+			</div>
+		</div>
+	</nav>
+
+	<main class="max-w-3xl mx-auto px-6 py-16 space-y-14">
 		<section>
-			<h1 class="font-mono text-3xl font-bold mb-4">About Jailbreak Arcade</h1>
-			<p class="text-text-secondary leading-relaxed">
-				Jailbreak Arcade is an interactive demo that showcases <a href="https://seclai.com" class="text-accent hover:text-accent-hover transition-colors" target="_blank" rel="noopener">Seclai's</a> AI governance capabilities. It lets anyone test the limits of an AI chatbot — and see how governance layers protect it from misuse.
+			<h1 class="font-lp-display font-normal text-lp-ink leading-[1] tracking-tight" style="font-size:clamp(40px,5.5vw,64px)">About Jailbreak Arcade</h1>
+			<p class="mt-5 text-lg leading-relaxed text-lp-ink-soft">
+				Jailbreak Arcade is an interactive demo that showcases <a href="https://seclai.com" class="text-lp-ink underline underline-offset-4 decoration-lp-rule hover:decoration-lp-ink transition-colors" target="_blank" rel="noopener">Seclai's</a> AI governance capabilities. It lets anyone test the limits of an AI chatbot — and see how governance layers protect it from misuse.
 			</p>
 		</section>
 
 		<section>
-			<h2 class="font-mono text-xl font-bold mb-3">What is BankBot?</h2>
-			<p class="text-text-secondary leading-relaxed">
-				BankBot is a fictional AI banking assistant. It's allowed to discuss general banking topics, help schedule branch appointments, and explain card replacement procedures. It is <strong class="text-text-primary">not</strong> allowed to give personalized financial advice, discuss specific accounts, promise refunds, speak negatively about the bank, respond in non-English languages, claim to be human, fabricate information, or ignore its instructions.
+			<h2 class="font-lp-display font-normal text-2xl text-lp-ink mb-3">What is BankBot?</h2>
+			<p class="text-[15px] leading-relaxed text-lp-ink-soft">
+				BankBot is a fictional AI banking assistant. It's allowed to discuss general banking topics, help schedule branch appointments, and explain card replacement procedures. It is <strong class="text-lp-ink font-semibold">not</strong> allowed to give personalized financial advice, discuss specific accounts, promise refunds, speak negatively about the bank, respond in non-English languages, claim to be human, fabricate information, or ignore its instructions.
 			</p>
 		</section>
 
 		<section>
-			<h2 class="font-mono text-xl font-bold mb-3">How does Seclai governance work?</h2>
-			<p class="text-text-secondary leading-relaxed mb-4">
+			<h2 class="font-lp-display font-normal text-2xl text-lp-ink mb-3">How does Seclai governance work?</h2>
+			<p class="text-[15px] leading-relaxed text-lp-ink-soft mb-5">
 				Seclai's governance layer sits between the AI agent and the user. Every response is automatically reviewed against configurable policies before it's delivered. If a policy violation is detected, the response is blocked and replaced with a governance notice.
 			</p>
-			<div class="bg-surface-raised border border-border rounded-lg p-6 font-mono text-sm space-y-2">
-				<p class="text-accent">// Simplified flow</p>
-				<p><span class="text-text-secondary">1.</span> User sends message → BankBot agent</p>
-				<p><span class="text-text-secondary">2.</span> BankBot generates response</p>
-				<p><span class="text-text-secondary">3.</span> Seclai governance reviews response</p>
-				<p><span class="text-text-secondary">4.</span> If OK → deliver to user</p>
-				<p><span class="text-text-secondary">5.</span> If violation → block + return notice</p>
-				<p><span class="text-text-secondary">6.</span> Judge agent scores the exchange</p>
+			<div class="bg-lp-paper-2 border border-lp-rule rounded-lg p-6 font-mono text-sm space-y-2 text-lp-ink">
+				<p class="text-lp-break">// Simplified flow</p>
+				<p><span class="text-lp-ink-soft">1.</span> User sends message → BankBot agent</p>
+				<p><span class="text-lp-ink-soft">2.</span> BankBot generates response</p>
+				<p><span class="text-lp-ink-soft">3.</span> Seclai governance reviews response</p>
+				<p><span class="text-lp-ink-soft">4.</span> If OK → deliver to user</p>
+				<p><span class="text-lp-ink-soft">5.</span> If violation → block + return notice</p>
+				<p><span class="text-lp-ink-soft">6.</span> Judge agent scores the exchange</p>
 			</div>
 		</section>
 
 		<section>
-			<h2 class="font-mono text-xl font-bold mb-3">Architecture</h2>
-			<ul class="space-y-3 text-text-secondary text-sm">
+			<h2 class="font-lp-display font-normal text-2xl text-lp-ink mb-3">Architecture</h2>
+			<ul class="space-y-3 text-[15px] text-lp-ink-soft">
 				<li class="flex gap-3">
-					<span class="font-mono text-accent shrink-0">Frontend</span>
+					<span class="font-mono text-lp-ink shrink-0 w-20">Frontend</span>
 					<span>Astro 6 with React islands, Tailwind CSS v4, deployed on Cloudflare Pages</span>
 				</li>
 				<li class="flex gap-3">
-					<span class="font-mono text-accent shrink-0">BankBot</span>
+					<span class="font-mono text-lp-ink shrink-0 w-20">BankBot</span>
 					<span>Seclai agent with a banking persona prompt + governance policies</span>
 				</li>
 				<li class="flex gap-3">
-					<span class="font-mono text-accent shrink-0">Judge</span>
+					<span class="font-mono text-lp-ink shrink-0 w-20">Judge</span>
 					<span>Separate Seclai agent that evaluates each exchange against BankBot's rules</span>
 				</li>
 				<li class="flex gap-3">
-					<span class="font-mono text-accent shrink-0">Storage</span>
+					<span class="font-mono text-lp-ink shrink-0 w-20">Storage</span>
 					<span>Cloudflare KV for leaderboard entries and rate limiting</span>
 				</li>
 			</ul>
 		</section>
 
 		<section>
-			<h2 class="font-mono text-xl font-bold mb-3">Disclaimer</h2>
-			<p class="text-text-secondary leading-relaxed text-sm">
+			<h2 class="font-lp-display font-normal text-2xl text-lp-ink mb-3">Disclaimer</h2>
+			<p class="text-[14px] leading-relaxed text-lp-ink-soft">
 				This is a demonstration application. BankBot is entirely fictional and does not have access to any real banking systems, accounts, or financial data. All interactions are logged for leaderboard purposes but no personally identifiable information is stored — only hashed IP addresses for rate limiting.
 			</p>
 		</section>
 	</main>
-	<Footer />
+
+	<footer class="py-12 border-t border-lp-rule text-[13px] text-lp-ink-soft bg-lp-paper">
+		<div class="max-w-[1280px] mx-auto px-8 flex items-center justify-between flex-wrap gap-5">
+			<div>Built with Seclai &mdash; a governance&#8209;demo project. No real bank data.</div>
+			<div class="flex gap-6">
+				<a href="https://seclai.com" target="_blank" rel="noopener" class="hover:text-lp-ink transition-colors">Seclai</a>
+				<a href="/" class="hover:text-lp-ink transition-colors">Home</a>
+			</div>
+		</div>
+	</footer>
+
+	</div>
 </Layout>
+
