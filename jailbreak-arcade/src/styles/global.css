@@ -246,7 +246,7 @@ body {
 
 /* Cursor blink */
 .lp-cursor::after {
-  content: "\u258b";
+  content: "\258b";
   margin-left: 2px;
   animation: lp-blink 1s steps(2) infinite;
   color: var(--color-lp-break);
