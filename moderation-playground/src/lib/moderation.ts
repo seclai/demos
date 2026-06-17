@@ -7,6 +7,8 @@
 
 import { getConfig, runAgent } from './seclai';
 
+type Platform = { env?: Record<string, unknown> } | undefined;
+
 export type Decision = 'approve' | 'review' | 'reject';
 export type Severity = 'high' | 'medium' | 'low';
 
@@ -134,8 +136,9 @@ export function normalizeResult(data: unknown): ModerationResult {
 export async function moderateListing(
   file: { bytes: Uint8Array; fileName: string; contentType: string },
   caption: string,
+  platform?: Platform,
 ): Promise<ModerationResult> {
-  const cfg = getConfig();
+  const cfg = getConfig(platform);
   const input = caption.trim()
     ? `${PROMPT}\n\nSeller caption for this listing: ${caption.trim()}`
     : PROMPT;

@@ -1,0 +1,11 @@
+name = "moderation-playground"
+compatibility_date = "2025-06-17"
+compatibility_flags = ["nodejs_compat"]
+
+# Deployed as a Cloudflare Worker (Astro SSR via @astrojs/cloudflare).
+# The adapter generates dist/server/wrangler.json at build time and merges
+# these settings in. `nodejs_compat` is required because @seclai/sdk imports
+# node:crypto / node:fs / node:path.
+#
+# Astro sessions auto-inject a SESSION KV binding. Wrangler will prompt to
+# create or bind one on the first deploy.

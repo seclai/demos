@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import { moderateListing } from '../../lib/moderation';
 
 export const prerender = false; // run on-demand so the Seclai key stays server-side
@@ -26,12 +27,15 @@ export const POST: APIRoute = async ({ request }) => {
 
   const caption = typeof form.get('caption') === 'string' ? (form.get('caption') as string) : '';
 
+  const platform = { env: env as unknown as Record<string, unknown> };
+
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const startedAt = Date.now();
     const result = await moderateListing(
       { bytes, fileName: file.name || 'listing', contentType },
       caption,
+      platform,
     );
     const latencyMs = Date.now() - startedAt;
 

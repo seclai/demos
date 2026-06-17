@@ -10,10 +10,15 @@
 
 import { Seclai } from '@seclai/sdk';
 
-function env(key: string): string | undefined {
-  // Server-side, Astro exposes .env via import.meta.env; process.env also works
-  // under the node adapter. Check both so it works in dev and preview.
-  return (import.meta.env as Record<string, string | undefined>)[key] ?? process.env[key];
+type Platform = { env?: Record<string, unknown> } | undefined;
+
+function readEnv(key: string, platform?: Platform): string | undefined {
+  // On Cloudflare Workers, secrets/vars live on `platform.env`. In dev they
+  // also come from `import.meta.env` (.env file).
+  const fromPlatform = (platform?.env as Record<string, string | undefined> | undefined)?.[key];
+  if (fromPlatform) return fromPlatform;
+  const fromMeta = (import.meta.env as Record<string, string | undefined>)[key];
+  return fromMeta || undefined;
 }
 
 export interface SeclaiConfig {
@@ -21,10 +26,10 @@ export interface SeclaiConfig {
   agentId: string;
 }
 
-export function getConfig(): SeclaiConfig {
-  const apiKey = env('SECLAI_API_KEY');
-  const agentId = env('SECLAI_AGENT_ID');
-  const baseUrl = env('SECLAI_BASE_URL');
+export function getConfig(platform?: Platform): SeclaiConfig {
+  const apiKey = readEnv('SECLAI_API_KEY', platform);
+  const agentId = readEnv('SECLAI_AGENT_ID', platform);
+  const baseUrl = readEnv('SECLAI_BASE_URL', platform);
   if (!apiKey || apiKey === 'your_api_key_here') {
     throw new Error('SECLAI_API_KEY is not set. Copy .env.example to .env and add your key.');
   }
@@ -57,13 +62,7 @@ async function uploadReady(
 const METADATA = { source: 'moderation-playground' };
 const RUN_OPTS = { timeoutMs: 120_000 } as const;
 
-/**
- * Run the agent with text and/or file attachments; return its text output.
- *
- * `input` and `input_upload_ids` are mutually exclusive in the API, so when we
- * have both a prompt and files we upload the prompt as its own text attachment
- * and pass everything via `input_upload_ids`.
- */
+/** Run the agent with text and/or file attachments; return its text output. */
 export async function runAgent(
   cfg: SeclaiConfig,
   input: string,

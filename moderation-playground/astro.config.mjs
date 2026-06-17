@@ -1,12 +1,16 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
 
-// Server output keeps the Seclai key off the browser and lets API routes run
-// on-demand. Node adapter makes `build` + `preview` work locally too.
+// SSR via @astrojs/cloudflare so we deploy as a Cloudflare Worker and keep the
+// Seclai API key off the browser. platformProxy enables miniflare in `dev` so
+// `Astro.locals.runtime.env` works locally too.
 export default defineConfig({
   output: 'server',
-  adapter: node({ mode: 'standalone' }),
+  adapter: cloudflare({
+    platformProxy: { enabled: true },
+    imageService: 'compile', // no Astro <Image>, skip auto IMAGES binding
+  }),
   integrations: [react()],
 });
