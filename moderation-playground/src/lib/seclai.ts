@@ -37,7 +37,14 @@ export function getConfig(platform?: Platform): SeclaiConfig {
     throw new Error('SECLAI_AGENT_ID is not set. Create the agent in Seclai and add its id to .env.');
   }
   // baseUrl defaults to https://api.seclai.com inside the SDK; only pass it when set.
-  const client = new Seclai(baseUrl ? { apiKey, baseUrl } : { apiKey });
+  // `fetch` must be bound to globalThis so the SDK can call it as a method
+  // without tripping Workers' "Illegal invocation" check on detached `this`.
+  const boundFetch: typeof fetch = (...args) => globalThis.fetch(...args);
+  const client = new Seclai({
+    apiKey,
+    fetch: boundFetch,
+    ...(baseUrl ? { baseUrl } : {}),
+  });
   return { client, agentId };
 }
 
