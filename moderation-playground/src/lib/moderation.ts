@@ -40,10 +40,11 @@ export interface ModerationResult {
 }
 
 /**
- * The moderator system prompt. This is NOT sent at runtime — paste it into the
- * Seclai agent's `prompt_call` step as `system_template`. Kept here only as a
- * source of truth so the repo documents what the agent should be configured to
- * do. See README → "Recreating the agent".
+ * The moderator system prompt. This is NOT sent at runtime — it lives on the
+ * agent's `prompt_call` step as `system_template` (see
+ * `agents/marketplace-listing-moderator.*.json` for the importable definition).
+ * Kept here only as a source of truth so the repo documents what the agent
+ * should be configured to do. See README → "Customizing the agent".
  */
 export const MODERATOR_SYSTEM_PROMPT = `You are a content moderator for an online marketplace. Examine the attached listing photo (and the optional seller caption that may accompany it) and judge it against typical marketplace listing policies. Respond with ONLY a single JSON object — no prose, no markdown fences.
 

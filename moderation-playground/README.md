@@ -7,8 +7,9 @@ with violations, advisory flags, a quality score, and confidence.
 
 ## Stack
 
-- **Astro 6** with `output: 'server'` (Node adapter) — keeps the Seclai API key
-  off the browser via on-demand server endpoints.
+- **Astro 6** with `output: 'server'` (Cloudflare adapter) — keeps the Seclai
+  API key off the browser via on-demand server endpoints, and deploys as a
+  single Cloudflare Worker.
 - **React 19** island for the interactive form/result UI.
 - **`@seclai/sdk`** for the upload → run → poll flow.
 
@@ -30,12 +31,9 @@ with violations, advisory flags, a quality score, and confidence.
 ## Prerequisites
 
 - Node 20+ (22 recommended).
-- A Seclai account on the **Pro** plan or above (MCP access).
-- The Seclai agent this app expects: **Marketplace Listing Moderator**
-  (id `188395f3-e711-424a-8a88-2376e7580db8`). It's a 3-step workflow:
-  `prompt_call` (vision) → `extract_content` (JSON) → `display_result`.
-
-If you need to recreate the agent, see [Recreating the agent](#recreating-the-agent) below.
+- A [Seclai](https://seclai.com) account (any plan with agent creation).
+- A [Cloudflare](https://cloudflare.com) account — only needed to deploy. Local
+  dev works without it.
 
 ## Setup
 
@@ -45,7 +43,29 @@ If you need to recreate the agent, see [Recreating the agent](#recreating-the-ag
 npm install
 ```
 
-### 2. Get a Seclai API key
+### 2. Create the Seclai agent (import the JSON)
+
+Two ready-to-import agent definitions live in [agents/](agents/):
+
+| File | Use for |
+|---|---|
+| [`agents/marketplace-listing-moderator.development.json`](agents/marketplace-listing-moderator.development.json) | Local dev. `temperature: 0`, no model auto-upgrade. |
+| [`agents/marketplace-listing-moderator.production.json`](agents/marketplace-listing-moderator.production.json) | Production. Same workflow + `cautious_adopter` model upgrades + auto-rollback on eval/run failures. |
+
+In the Seclai dashboard:
+
+1. Go to **Agents** → click **Import** in the top-right.
+2. Pick one of the JSON files above (start with the development one).
+3. Confirm the name and click **Import as new agent**.
+4. Open the new agent and copy its **ID** from the URL or the agent header —
+   you'll paste it into `.env.local` in step 4.
+
+The JSON imports clean: the moderator system prompt is already in the
+`prompt_call` step's `system_template`, the `dynamic_input` trigger accepts
+image uploads, and the `extract_content` → `display_result` chain returns
+strict JSON to the app.
+
+### 3. Get a Seclai API key
 
 In the Seclai dashboard: **Account Settings → API Keys → Create**. Copy the
 key — it's shown only once. This is the *runtime* key the deployed app uses.
@@ -54,7 +74,7 @@ key — it's shown only once. This is the *runtime* key the deployed app uses.
 > [.mcp.json](.mcp.json)), use a **separate** key for that — don't reuse the
 > runtime key.
 
-### 3. Configure `.env.local`
+### 4. Configure `.env.local`
 
 ```bash
 cp .env.example .env.local
@@ -64,14 +84,14 @@ Then fill in:
 
 ```
 SECLAI_API_KEY=sk_...
-SECLAI_AGENT_ID=188395f3-e711-424a-8a88-2376e7580db8
+SECLAI_AGENT_ID=<paste the agent id from step 2>
 SECLAI_BASE_URL=https://api.seclai.com
 ```
 
-`.env.local` is gitignored. Astro's Node adapter picks it up automatically in
-both `dev` and `preview`.
+`.env.local` is gitignored. The Cloudflare adapter's `platformProxy` picks it
+up automatically in `dev`.
 
-### 4. Run it
+### 5. Run it
 
 ```bash
 npm run dev
@@ -80,7 +100,46 @@ npm run dev
 Open the URL the dev server prints (typically `http://localhost:4321`),
 drop in a listing photo, and click **Run moderation**.
 
-## Testing the API directly
+## Deploy to Cloudflare
+
+The app is wired for [Cloudflare Workers](https://workers.cloudflare.com) via
+[`@astrojs/cloudflare`](https://docs.astro.build/en/guides/integrations-guide/cloudflare/).
+The whole SSR app ships as one Worker.
+
+### 1. Install Wrangler and log in
+
+```bash
+npm install -g wrangler
+wrangler login
+```
+
+### 2. Add your Seclai credentials as Worker secrets
+
+Secrets stay out of the repo and out of [wrangler.toml](wrangler.toml):
+
+```bash
+wrangler secret put SECLAI_API_KEY      # paste the key when prompted
+wrangler secret put SECLAI_AGENT_ID     # paste the production agent id
+# SECLAI_BASE_URL is optional — only set it if you point at a custom Seclai host
+```
+
+For production, import the **production** agent JSON ([agents/marketplace-listing-moderator.production.json](agents/marketplace-listing-moderator.production.json))
+into Seclai and use its id here.
+
+### 3. Build and deploy
+
+```bash
+npm run build      # writes dist/ via @astrojs/cloudflare
+wrangler deploy    # uploads the Worker
+```
+
+Wrangler prints the live URL. The first deploy will prompt to create the
+`SESSION` KV namespace that Astro sessions need — accept the prompt.
+
+### 4. Updating later
+
+Re-run `npm run build && wrangler deploy`. To rotate credentials, run
+`wrangler secret put SECLAI_API_KEY` again — no redeploy needed.## Testing the API directly
 
 Astro 6 enforces same-origin POSTs, so a bare `curl` will get a 403 unless you
 send a matching `Origin` header:
@@ -97,19 +156,22 @@ curl -s -X POST "$O/api/moderate" -H "Origin: $O" \
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Astro dev server with HMR |
-| `npm run build` | Production build (Node standalone) |
-| `npm run preview` | Run the production build locally |
+| `npm run dev` | Astro dev server with HMR (via Cloudflare's miniflare proxy) |
+| `npm run build` | Production build for Cloudflare Workers (writes `dist/`) |
+| `npm run preview` | Run the built Worker locally with `wrangler dev` |
 
 ## Project layout
 
 ```
+agents/
+  marketplace-listing-moderator.development.json   # importable Seclai agent (dev)
+  marketplace-listing-moderator.production.json    # importable Seclai agent (prod)
 src/
   components/
     ModerationPlayground.tsx   # React island: dropzone, caption, result UI
   lib/
     seclai.ts                  # Generic @seclai/sdk wrapper (env, upload, run)
-    moderation.ts              # App-specific: prompt, schema, parser, decide()
+    moderation.ts              # App-specific: system prompt, schema, parser, decide()
   pages/
     index.astro                # Hosts the React island; global styles
     api/
@@ -119,24 +181,30 @@ src/
 The split between `seclai.ts` (generic) and `moderation.ts` (app-specific) is
 intentional: lift `seclai.ts` straight into another Seclai-powered app.
 
-## Recreating the agent
+## Customizing the agent
 
-If the agent has been deleted from your Seclai org, you can recreate it via
-the MCP server (Pro+ plan) or from the dashboard. The agent must:
+The agent's workflow lives in the two JSON files in [agents/](agents/). The
+important fields on the `prompt_call` step:
 
-- Use `dynamic_input` trigger (accepts text + file uploads).
-- Have a single `prompt_call` step on a **vision-capable** model
-  (Claude Sonnet, GPT-4o, Gemini Vision) at temperature 0, with:
-  - `system_template`: paste the full moderator instructions + JSON schema
-    exported as `MODERATOR_SYSTEM_PROMPT` in
-    [src/lib/moderation.ts](src/lib/moderation.ts). Putting it here (not in
-    the runtime `input`) keeps it out of the prompt-injection scanner.
-  - `prompt_template`: `{{input}}\n{{agent.attachments}}` — `{{input}}` is
-    just the (optional, short) seller caption.
-- Followed by an `extract_content` step (`expected_format: json`,
-  `query: "$"`) and a `display_result` step (`template: "{{input}}"`).
+- **`system_template`** — the moderator prompt + JSON schema. This is the
+  single source of truth for what the agent does. The same text is mirrored in
+  [src/lib/moderation.ts](src/lib/moderation.ts) as `MODERATOR_SYSTEM_PROMPT`
+  for reference. If you change one, update the other.
+- **`prompt_template`** — `{{input}}\n{{agent.attachments}}`. `{{input}}` is
+  the (optional, short) seller caption sent at runtime; `{{agent.attachments}}`
+  is the listing image.
+- **`model`** — set to a vision-capable model. The exports use
+  `openai_gpt_5_5`; swap in Claude Sonnet, Gemini Vision, or any other
+  vision-capable model in your Seclai account.
 
-After creating, update `SECLAI_AGENT_ID` in [.env.local](.env.local).
+The moderator prompt **must** live on `system_template`, not in the runtime
+`input` — Seclai's always-on prompt-injection scanner flags long
+"You are a moderator… weapons, drugs…" text when it arrives as user input.
+See the prompt-scanner troubleshooting entry below.
+
+After editing the agent in the Seclai dashboard, re-export it (UI: agent →
+**Export**) and overwrite the JSON in [agents/](agents/) so the repo stays in
+sync.
 
 ## Troubleshooting
 
@@ -145,7 +213,7 @@ After creating, update `SECLAI_AGENT_ID` in [.env.local](.env.local).
 - **`Seclai run failed … input_scan=unsafe`** — the prompt-injection scanner
   flagged the runtime `input`. The moderator prompt must live in the agent's
   `system_template`; only the (short) seller caption should be sent as
-  `input`. See "Recreating the agent" above.
+  `input`. See [Customizing the agent](#customizing-the-agent) above.
 - **`Seclai run failed` / empty output** — confirm the agent's `prompt_call`
   step is on a vision-capable model and that the image is reaching the agent
   (check the run in the Seclai dashboard).

@@ -1,0 +1,79 @@
+{
+  "export_version": "2",
+  "exported_at": "2026-06-17T20:34:44.706302+00:00",
+  "software_version": "2.4.6",
+  "agent": {
+    "name": "Marketplace Listing Moderator (Development)",
+    "description": "Vision-enabled agent for the moderation playground. Examines a marketplace listing photo (with optional seller caption), checks it against marketplace listing policies, and returns a strict JSON moderation report (is_listing_photo, violations, advisory_flags, quality_score, confidence).",
+    "definition": {
+      "name": "Marketplace Listing Moderator",
+      "tags": [],
+      "child_steps": [
+        {
+          "id": "vision-moderation-prompt_call",
+          "name": "Vision moderation",
+          "model": "openai_gpt_5_5",
+          "tools": [],
+          "purpose": "Examine the listing image (and optional seller caption) against marketplace policies and emit a strict JSON moderation report.",
+          "step_type": "prompt_call",
+          "child_steps": [
+            {
+              "id": "json-validate-extract_content",
+              "name": "Validate JSON output",
+              "query": "$",
+              "purpose": "Strip any surrounding fences and ensure the model output is a well-formed JSON object",
+              "step_type": "extract_content",
+              "child_steps": [
+                {
+                  "id": "final-display_result",
+                  "name": "Return moderation result",
+                  "purpose": "Emit the validated JSON object as the agent's final output",
+                  "template": "{{input}}",
+                  "step_type": "display_result",
+                  "html_format": false
+                }
+              ],
+              "expected_format": "json"
+            }
+          ],
+          "temperature": 0,
+          "model_variant": "default",
+          "simple_format": true,
+          "prompt_template": "{{input}}\n{{agent.attachments}}",
+          "system_template": "You are a content moderator for an online marketplace. Examine the attached listing photo (and the optional seller caption that may accompany it) and judge it against typical marketplace listing policies. Respond with ONLY a single JSON object \u2014 no prose, no markdown fences.\n\nCheck for policy violations such as: prohibited or restricted items (weapons, drugs, recalled goods, counterfeits, adult content), contact information shown in the image (phone numbers, emails, URLs), third-party or retailer watermarks, misleading or stock imagery used as the actual item, and unsafe or graphic content.\n\nSchema:\n{\n  \"is_listing_photo\": boolean,        // true if this is a usable product/listing photo; false for memes, screenshots, people-only selfies, random unrelated images\n  \"not_photo_reason\": string|null,    // short description of what you see when is_listing_photo is false; null when true\n  \"violations\": [                      // concrete policy violations; [] if none\n    {\n      \"rule\": string,                  // snake_case id, e.g. \"prohibited_item\", \"contact_info_in_image\", \"third_party_watermark\"\n      \"severity\": \"high\"|\"medium\"|\"low\",\n      \"explanation\": string            // one concise sentence\n    }\n  ],\n  \"advisory_flags\": [                  // non-blocking observations; [] if none\n    {\n      \"flag\": string,                  // snake_case id, e.g. \"possibly_ai_generated\", \"possibly_stock\"\n      \"explanation\": string\n    }\n  ],\n  \"quality_score\": number,            // 0..1 \u2014 overall listing photo quality (lighting, focus, framing)\n  \"confidence\": number                // 0..1 \u2014 your confidence in this assessment\n}\n\nSeverity guidance: \"high\" = clearly prohibited / must not be published; \"medium\" = likely problem needing human review; \"low\" = minor issue. Use advisory_flags for things that are worth noting but are not violations. Do NOT include a top-level decision field \u2014 that is computed downstream. If the image is not a listing photo, set is_listing_photo=false, fill not_photo_reason, set violations=[] and advisory_flags=[], quality_score=0, and confidence to how sure you are it isn't a listing photo.",
+          "input_is_messages": false,
+          "max_output_attachments": 16,
+          "max_output_total_bytes": 26214400
+        }
+      ],
+      "description": "Vision-enabled agent for the moderation playground. Examines a marketplace listing photo (with optional seller caption), checks it against marketplace listing policies, and returns a strict JSON moderation report (is_listing_photo, violations, advisory_flags, quality_score, confidence)."
+    },
+    "schema_version": "v1",
+    "default_evaluation_tier": null,
+    "evaluation_mode": "eval_and_retry",
+    "sampling_config": null,
+    "max_retries": 3,
+    "retry_on_failure": true,
+    "prompt_model_auto_upgrade_strategy": "none",
+    "prompt_model_auto_rollback_enabled": false,
+    "prompt_model_auto_rollback_triggers": null,
+    "created_at": "2026-06-17T17:52:47.892973+00:00",
+    "updated_at": "2026-06-17T18:07:40.596343+00:00"
+  },
+  "trigger": {
+    "trigger_type": "dynamic_input",
+    "name": null,
+    "input": null,
+    "input_content_type": null,
+    "allow_empty_input": true,
+    "default_input": null,
+    "metadata_": null,
+    "knowledge_base_id": null,
+    "schedules": null
+  },
+  "alert_configs": null,
+  "evaluation_criteria": null,
+  "governance_policies": null,
+  "dependencies": null,
+  "solutions": null
+}
