@@ -22,6 +22,18 @@ type View = 'card' | 'json';
 
 const ACCEPT = 'image/png,image/jpeg';
 
+// Map Seclai's raw model aliases to human-friendly labels for display. Falls
+// back to auto-formatting (e.g. openai_gpt_4_1 → GPT-4.1) for unmapped aliases.
+const MODEL_LABELS: Record<string, string> = {
+  openai_gpt_5_5: 'GPT-5.5',
+};
+const modelLabel = (m: string) => {
+  if (MODEL_LABELS[m]) return MODEL_LABELS[m];
+  const g = m.match(/gpt_(\d+)_(\d+)/i);
+  if (g) return `GPT-${g[1]}.${g[2]}`;
+  return m;
+};
+
 const VERDICT = {
   pass: { color: '#16A34A', glyph: '✓', label: 'Pass', sub: 'Listing meets marketplace policies.', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.25)' },
   fail: { color: '#DC2626', glyph: '✕', label: 'Fail', sub: "Listing can't be published — see below.", bg: 'rgba(220,38,38,0.07)', border: 'rgba(220,38,38,0.25)' },
@@ -89,6 +101,7 @@ export default function ModerationPlayground() {
   const [caption, setCaption] = useState('');
   const [result, setResult] = useState<ModerationResult | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [model, setModel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -152,6 +165,7 @@ export default function ModerationPlayground() {
       }
       setResult(data.result as ModerationResult);
       setLatencyMs(typeof data.latencyMs === 'number' ? data.latencyMs : null);
+      setModel(typeof data.model === 'string' ? data.model : null);
       setView('card');
       setStatus('done');
     } catch (err) {
@@ -373,6 +387,8 @@ export default function ModerationPlayground() {
                 <span className="ok"><span className="ok-dot" />200 OK</span>
                 <span className="dot-sep">·</span>
                 <span>{latencyMs != null ? `${(latencyMs / 1000).toFixed(1)}s` : '—'}</span>
+                {model && (<><span className="dot-sep">·</span><span>{modelLabel(model)}</span></>)}
+                <button className="footer-clear" onClick={clearImage}>Clear</button>
               </div>
             )}
           </section>

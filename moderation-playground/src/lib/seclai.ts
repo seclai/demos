@@ -48,6 +48,30 @@ export function getConfig(platform?: Platform): SeclaiConfig {
   return { client, agentId };
 }
 
+/** Pull the model the agent's prompt_call step uses. Cached per agent id with a
+ *  short TTL: the lookup is a separate API call, but the model can change (the
+ *  agent has auto-upgrade), so we re-check rather than cache forever. */
+const MODEL_TTL_MS = 60_000;
+const modelCache = new Map<string, { value: string | null; expires: number }>();
+export async function getAgentModel(cfg: SeclaiConfig): Promise<string | null> {
+  const hit = modelCache.get(cfg.agentId);
+  if (hit && hit.expires > Date.now()) return hit.value;
+  const walk = (node: unknown): string | null => {
+    const n = node as { step_type?: string; model?: string; child_steps?: unknown[] } | null;
+    if (n?.step_type === 'prompt_call' && n.model) return n.model;
+    for (const c of n?.child_steps ?? []) { const m = walk(c); if (m) return m; }
+    return null;
+  };
+  try {
+    const def = await cfg.client.getAgentDefinition(cfg.agentId);
+    const model = walk(def.definition);
+    modelCache.set(cfg.agentId, { value: model, expires: Date.now() + MODEL_TTL_MS });
+    return model;
+  } catch {
+    return hit?.value ?? null; // non-fatal — fall back to last known / decorative
+  }
+}
+
 /** Upload one file and wait until the SDK reports it `ready` for a run. */
 async function uploadReady(
   cfg: SeclaiConfig, bytes: Uint8Array, fileName: string, mimeType: string,

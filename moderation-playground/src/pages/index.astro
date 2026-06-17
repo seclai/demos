@@ -244,6 +244,13 @@ import ModerationPlayground from '../components/ModerationPlayground.tsx';
       }
       .ok { display: inline-flex; align-items: center; gap: 6px; }
       .ok-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+      .footer-clear {
+        margin-left: auto; font-family: var(--font); font-size: 11.5px; font-weight: 600;
+        color: var(--ink-soft); background: #fff; border: 1px solid var(--line);
+        border-radius: 7px; padding: 5px 12px; cursor: pointer;
+        transition: color .15s ease, border-color .15s ease;
+      }
+      .footer-clear:hover { color: var(--ink); border-color: var(--line-strong); }
       .dot-sep { color: var(--line-strong); }
 
       /* ---- Checks drawer ---- */

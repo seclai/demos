@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { moderateListing } from '../../lib/moderation';
+import { getConfig, getAgentModel } from '../../lib/seclai';
 
 export const prerender = false; // run on-demand so the Seclai key stays server-side
 
@@ -38,10 +39,11 @@ export const POST: APIRoute = async ({ request }) => {
       platform,
     );
     const latencyMs = Date.now() - startedAt;
+    const model = await getAgentModel(getConfig(platform)); // cached after first call
 
     // "Not a listing photo" is no longer a special case — it comes back as a
     // normal result that fails (see normalizeResult in lib/moderation.ts).
-    return json({ result, latencyMs });
+    return json({ result, latencyMs, model });
   } catch (err) {
     console.error('[api/moderate]', err);
     return json({ error: err instanceof Error ? err.message : 'Moderation failed.' }, 502);
