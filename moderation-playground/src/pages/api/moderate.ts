@@ -39,17 +39,8 @@ export const POST: APIRoute = async ({ request }) => {
     );
     const latencyMs = Date.now() - startedAt;
 
-    if (!result.is_listing_photo) {
-      return json(
-        {
-          error: result.not_photo_reason
-            ? `That doesn't look like a listing photo (${result.not_photo_reason}).`
-            : "That doesn't look like a listing photo.",
-          kind: 'not_listing_photo',
-        },
-        422,
-      );
-    }
+    // "Not a listing photo" is no longer a special case — it comes back as a
+    // normal result that fails (see normalizeResult in lib/moderation.ts).
     return json({ result, latencyMs });
   } catch (err) {
     console.error('[api/moderate]', err);

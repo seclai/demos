@@ -18,22 +18,12 @@
           "step_type": "prompt_call",
           "child_steps": [
             {
-              "id": "json-validate-extract_content",
-              "name": "Validate JSON output",
-              "query": "$",
-              "purpose": "Strip any surrounding fences and ensure the model output is a well-formed JSON object",
-              "step_type": "extract_content",
-              "child_steps": [
-                {
-                  "id": "final-display_result",
-                  "name": "Return moderation result",
-                  "purpose": "Emit the validated JSON object as the agent's final output",
-                  "template": "{{input}}",
-                  "step_type": "display_result",
-                  "html_format": true
-                }
-              ],
-              "expected_format": "json"
+              "id": "final-display_result",
+              "name": "Return moderation result",
+              "purpose": "Emit the LLM JSON output as the agent's final output",
+              "template": "{{input}}",
+              "step_type": "display_result",
+              "html_format": false
             }
           ],
           "temperature": 0,

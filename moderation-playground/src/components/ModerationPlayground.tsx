@@ -3,7 +3,7 @@ import type { DragEvent } from 'react';
 
 // Mirror of the server-side ModerationResult shape (src/lib/moderation.ts),
 // kept inline so the component is self-contained on the client.
-type Decision = 'approve' | 'review' | 'reject';
+type Decision = 'pass' | 'fail';
 type Severity = 'high' | 'medium' | 'low';
 interface Violation { rule: string; severity: Severity; explanation: string; }
 interface AdvisoryFlag { flag: string; explanation: string; }
@@ -17,25 +17,34 @@ interface ModerationResult {
   confidence: number;
 }
 
-type Status = 'empty' | 'loading' | 'done' | 'error' | 'not_photo';
+type Status = 'empty' | 'loading' | 'done' | 'error';
 type View = 'card' | 'json';
 
 const ACCEPT = 'image/png,image/jpeg';
 
 const VERDICT = {
-  approve: { color: '#16A34A', glyph: '✓', label: 'Approve', sub: 'Listing meets marketplace policies.', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.25)' },
-  review: { color: '#D97706', glyph: '!', label: 'Review', sub: 'Manual review recommended before publishing.', bg: 'rgba(217,119,6,0.07)', border: 'rgba(217,119,6,0.25)' },
-  reject: { color: '#DC2626', glyph: '✕', label: 'Reject', sub: 'Listing violates marketplace policies.', bg: 'rgba(220,38,38,0.07)', border: 'rgba(220,38,38,0.25)' },
+  pass: { color: '#16A34A', glyph: '✓', label: 'Pass', sub: 'Listing meets marketplace policies.', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.25)' },
+  fail: { color: '#DC2626', glyph: '✕', label: 'Fail', sub: "Listing can't be published — see below.", bg: 'rgba(220,38,38,0.07)', border: 'rgba(220,38,38,0.25)' },
 } as const;
 
-const SEV = {
-  high: { color: '#DC2626', bg: 'rgba(220,38,38,0.10)' },
-  medium: { color: '#D97706', bg: 'rgba(217,119,6,0.10)' },
-  low: { color: '#64748B', bg: 'rgba(100,116,139,0.10)' },
+// What the moderator checks for, shown in the UI so users know what
+// to expect before they run something. Mirrors the system prompt in
+// src/lib/moderation.ts.
+type RuleTier = 'fail' | 'advisory';
+const RULES: { rule: string; tier: RuleTier; label: string; examples: string }[] = [
+  { rule: 'prohibited_item', tier: 'fail', label: 'Prohibited or restricted items', examples: 'weapons, drugs, recalled goods, counterfeits, adult content' },
+  { rule: 'unsafe_or_graphic', tier: 'fail', label: 'Unsafe or graphic content', examples: 'gore, violence, hazardous materials' },
+  { rule: 'contact_info_in_image', tier: 'fail', label: 'Contact info shown in the photo', examples: 'phone numbers, emails, URLs, handles' },
+  { rule: 'third_party_watermark', tier: 'fail', label: 'Third-party or retailer watermarks', examples: 'logos from other marketplaces or stock sites' },
+  { rule: 'misleading_or_stock', tier: 'fail', label: 'Stock / misleading imagery', examples: 'product render or web-pulled image used as the actual item' },
+  { rule: 'not_a_listing_photo', tier: 'fail', label: 'Not a listing photo', examples: 'memes, screenshots, selfies — short-circuits with an error' },
+  { rule: 'low_quality_photo', tier: 'advisory', label: 'Image quality', examples: 'lighting, focus, framing' },
+  { rule: 'possibly_ai_generated', tier: 'advisory', label: 'AI-generated or unusual artifacts', examples: 'flagged as a note — does not fail on its own' },
+];
+const RULE_TIER = {
+  fail: { color: '#DC2626', bg: 'rgba(220,38,38,0.10)', label: 'Fails' },
+  advisory: { color: '#64748B', bg: 'rgba(100,116,139,0.10)', label: 'Note' },
 } as const;
-
-const pct = (v: number) => Math.round(v * 100);
-const qualityColor = (q: number) => (q >= 0.8 ? '#16A34A' : q >= 0.6 ? '#D97706' : '#DC2626');
 
 // Lightweight JSON syntax highlighter for the JSON tab.
 function JsonView({ data }: { data: unknown }) {
@@ -73,6 +82,7 @@ function JsonView({ data }: { data: unknown }) {
 export default function ModerationPlayground() {
   const [status, setStatus] = useState<Status>('empty');
   const [view, setView] = useState<View>('card');
+  const [checksOpen, setChecksOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -80,9 +90,28 @@ export default function ModerationPlayground() {
   const [result, setResult] = useState<ModerationResult | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const copyJson = useCallback(async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — ignore */
+    }
+  }, [result]);
+
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
+  useEffect(() => {
+    if (!checksOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setChecksOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [checksOpen]);
 
   const setImage = useCallback((f: File | null | undefined) => {
     if (!f) return;
@@ -119,11 +148,6 @@ export default function ModerationPlayground() {
       const res = await fetch('/api/moderate', { method: 'POST', body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (data?.kind === 'not_listing_photo') {
-          setError(data?.error || "That doesn't look like a listing photo.");
-          setStatus('not_photo');
-          return;
-        }
         throw new Error(data?.error || `Request failed (${res.status}).`);
       }
       setResult(data.result as ModerationResult);
@@ -153,6 +177,18 @@ export default function ModerationPlayground() {
             powered by Seclai
           </a>
         </div>
+        <div className="topbar-actions">
+        <button
+          className={`gh-btn checks-btn${checksOpen ? ' active' : ''}`}
+          onClick={() => setChecksOpen((v) => !v)}
+          aria-label="What the moderator checks"
+          aria-expanded={checksOpen}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          <span>What's checked</span>
+        </button>
         <a
           className="gh-btn"
           href="https://github.com/seclai/demos/tree/main/moderation-playground"
@@ -165,6 +201,7 @@ export default function ModerationPlayground() {
           </svg>
           <span>GitHub</span>
         </a>
+        </div>
       </header>
 
       {/* HERO */}
@@ -247,6 +284,7 @@ export default function ModerationPlayground() {
                     </svg>
                   </div>
                   <div className="placeholder-text">Upload a listing on the left to see a verdict, any policy violations, and the raw JSON your backend would receive.</div>
+                  <button className="checks-open-link" onClick={() => setChecksOpen(true)}>See what the moderator checks →</button>
                 </div>
               )}
 
@@ -254,17 +292,6 @@ export default function ModerationPlayground() {
                 <div className="placeholder">
                   <span className="big-spinner" />
                   <div className="loading-text">running moderation…</div>
-                </div>
-              )}
-
-              {status === 'not_photo' && (
-                <div className="placeholder">
-                  <div className="placeholder-icon" style={{ background: '#FEF3C7' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                  </div>
-                  <div className="placeholder-text">{error}</div>
                 </div>
               )}
 
@@ -292,19 +319,21 @@ export default function ModerationPlayground() {
                   ); })()}
 
                   <div className="section">
-                    <div className="section-label">Violations <span className="muted">({result.violations.length})</span></div>
                     {result.violations.length > 0 ? (
-                      <div className="violation-list">
-                        {result.violations.map((v, i) => (
-                          <div className="violation" key={i}>
-                            <span className="sev" style={{ color: SEV[v.severity].color, background: SEV[v.severity].bg }}>{v.severity}</span>
-                            <div className="violation-body">
-                              <div className="violation-rule">{v.rule}</div>
-                              <div className="violation-exp">{v.explanation}</div>
+                      <>
+                        <div className="section-label">Why it failed <span className="muted">({result.violations.length})</span></div>
+                        <div className="violation-list">
+                          {result.violations.map((v, i) => (
+                            <div className="violation" key={i}>
+                              <span className="violation-dot" />
+                              <div className="violation-body">
+                                <div className="violation-rule">{v.rule}</div>
+                                <div className="violation-exp">{v.explanation}</div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      </>
                     ) : (
                       <div className="no-violations"><span style={{ color: '#16A34A' }}>✓</span> No policy violations detected.</div>
                     )}
@@ -312,7 +341,7 @@ export default function ModerationPlayground() {
 
                   {result.advisory_flags.length > 0 && (
                     <div className="advisory">
-                      <div className="advisory-label">Advisory <span className="advisory-note">· non-blocking</span></div>
+                      <div className="advisory-label">Noted <span className="advisory-note">· doesn't fail</span></div>
                       <div className="advisory-list">
                         {result.advisory_flags.map((a, i) => (
                           <div className="advisory-item" key={i}>
@@ -326,28 +355,16 @@ export default function ModerationPlayground() {
                       </div>
                     </div>
                   )}
-
-                  <div className="metrics">
-                    <div className="quality">
-                      <div className="quality-top">
-                        <span className="quality-label">Quality score</span>
-                        <span className="quality-pct" style={{ color: qualityColor(result.quality_score) }}>{pct(result.quality_score)}/100</span>
-                      </div>
-                      <div className="quality-track">
-                        <div className="quality-fill" style={{ width: `${pct(result.quality_score)}%`, background: qualityColor(result.quality_score) }} />
-                      </div>
-                    </div>
-                    <div className="confidence">
-                      <span className="confidence-dot" />
-                      <span className="confidence-label">Confidence</span>
-                      <span className="confidence-pct">{pct(result.confidence)}%</span>
-                    </div>
-                  </div>
                 </div>
               )}
 
               {status === 'done' && result && view === 'json' && (
-                <div className="json-wrap"><JsonView data={result} /></div>
+                <div className="json-wrap">
+                  <button className="json-copy" onClick={copyJson} aria-label="Copy JSON">
+                    {copied ? 'Copied' : 'Copy'}
+                  </button>
+                  <JsonView data={result} />
+                </div>
               )}
             </div>
 
@@ -361,6 +378,53 @@ export default function ModerationPlayground() {
           </section>
         </div>
       </main>
+
+      {/* CHECKS DRAWER */}
+      <div
+        className={`drawer-backdrop${checksOpen ? ' open' : ''}`}
+        onClick={() => setChecksOpen(false)}
+        aria-hidden="true"
+      />
+      <aside className={`drawer${checksOpen ? ' open' : ''}`} role="dialog" aria-label="What the moderator checks" aria-modal={checksOpen}>
+        <div className="drawer-head">
+          <div>
+            <div className="drawer-title">What the moderator checks</div>
+            <div className="drawer-sub">A listing passes or fails based on the rules below.</div>
+          </div>
+          <button className="drawer-close" onClick={() => setChecksOpen(false)} aria-label="Close">✕</button>
+        </div>
+        <div className="drawer-body">
+          <p className="drawer-legend">
+            <strong>Fails</strong> if <strong>any</strong> of these are found. <strong>Passes</strong> if
+            none are. Advisory items are noted but never fail on their own.
+          </p>
+          {([
+            { tier: 'fail' as RuleTier, heading: 'Fails the listing' },
+            { tier: 'advisory' as RuleTier, heading: 'Noted but still passes' },
+          ]).map(({ tier, heading }) => (
+            <div className="drawer-group" key={tier}>
+              <div className="drawer-group-head">{heading}</div>
+              <div className="drawer-list">
+                {RULES.filter((r) => r.tier === tier).map((r) => {
+                  const t = RULE_TIER[r.tier];
+                  return (
+                    <div className="check" key={r.rule}>
+                      <span className="check-tier" style={{ color: t.color, background: t.bg }}>{t.label}</span>
+                      <div className="check-body">
+                        <div className="check-top">
+                          <span className="check-label">{r.label}</span>
+                          <span className="check-id">{r.rule}</span>
+                        </div>
+                        <div className="check-examples">{r.examples}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
     </div>
   );
 }

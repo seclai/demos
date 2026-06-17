@@ -15,7 +15,7 @@ import { getConfig, runAgent } from './seclai';
 
 type Platform = { env?: Record<string, unknown> } | undefined;
 
-export type Decision = 'approve' | 'review' | 'reject';
+export type Decision = 'pass' | 'fail';
 export type Severity = 'high' | 'medium' | 'low';
 
 export interface Violation {
@@ -104,9 +104,8 @@ function toSeverity(v: unknown): Severity {
 /** The verdict is derived deterministically from the violations, not taken
  *  from the model — so thresholds are tunable here without re-prompting. */
 export function decide(violations: Violation[]): Decision {
-  if (violations.some((v) => v.severity === 'high')) return 'reject';
-  if (violations.length > 0) return 'review'; // any medium/low violation → human review
-  return 'approve';
+  // Binary outcome: any violation (of any severity) fails the listing.
+  return violations.length > 0 ? 'fail' : 'pass';
 }
 
 /** Normalize the loosely-typed agent JSON into a strict ModerationResult. */
@@ -133,10 +132,21 @@ export function normalizeResult(data: unknown): ModerationResult {
   });
 
   const is_listing_photo = r.is_listing_photo !== false; // default true if model omits it
+  const not_photo_reason = str(r.not_photo_reason);
+
+  // "Not a listing photo" is itself a failure — the model short-circuits before
+  // checking policy rules, so surface it as a violation so it fails like anything else.
+  if (!is_listing_photo) {
+    violations.unshift({
+      rule: 'not_a_listing_photo',
+      severity: 'high',
+      explanation: not_photo_reason ?? 'This image is not a usable product or listing photo.',
+    });
+  }
 
   return {
     is_listing_photo,
-    not_photo_reason: str(r.not_photo_reason),
+    not_photo_reason,
     decision: decide(violations),
     violations,
     advisory_flags,
