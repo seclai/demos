@@ -167,6 +167,12 @@ export default function ModerationPlayground() {
         </a>
       </header>
 
+      {/* HERO */}
+      <section className="hero">
+        <h1 className="hero-title">Catch bad listings before buyers do</h1>
+        <p className="hero-sub">Moderates a marketplace listing in seconds. A vision agent checks the photo for prohibited items, contact info, watermarks, stock or AI-generated images, and quality — then returns structured JSON your backend can act on.</p>
+      </section>
+
       {/* MAIN */}
       <main className="main">
         <div className="layout">
@@ -199,8 +205,8 @@ export default function ModerationPlayground() {
                   </svg>
                 </div>
                 <div className="drop-text">
-                  <div className="drop-title">Drop a listing photo — JPG or PNG</div>
-                  <div className="drop-sub">or click to browse</div>
+                  <div className="drop-title">Drag a listing photo here, or click to upload</div>
+                  <div className="drop-sub">JPG or PNG</div>
                 </div>
               </div>
             )}
@@ -213,12 +219,13 @@ export default function ModerationPlayground() {
               onChange={(e) => setCaption(e.target.value)}
               placeholder="e.g. Vintage leather sofa, great condition"
             />
+            <div className="field-helper">The agent cross-checks your caption against the photo — mismatches show up as advisory flags.</div>
 
             <button className="run-btn" onClick={run} disabled={!file || status === 'loading'}>
               {status === 'loading' && <span className="run-spinner" />}
               <span>{status === 'loading' ? 'Running…' : 'Run moderation'}</span>
             </button>
-            <div className="run-hint">Tests against marketplace listing policies.</div>
+            <div className="run-hint">Checks prohibited items, contact info in images, watermarks, stock photos, and image quality.</div>
           </section>
 
           {/* RIGHT: OUTPUT */}
@@ -239,7 +246,7 @@ export default function ModerationPlayground() {
                       <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
                   </div>
-                  <div className="placeholder-text">Run a check to see the result.</div>
+                  <div className="placeholder-text">Upload a listing on the left to see a verdict, any policy violations, and the raw JSON your backend would receive.</div>
                 </div>
               )}
 

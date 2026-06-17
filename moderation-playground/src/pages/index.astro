@@ -52,7 +52,7 @@ import ModerationPlayground from '../components/ModerationPlayground.tsx';
       ::-webkit-scrollbar { width: 10px; height: 10px; }
       ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; border: 3px solid #fff; }
 
-      .app { min-height: 100vh; height: 100vh; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+      .app { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
 
       /* ---- Top bar ---- */
       .topbar {
@@ -90,6 +90,33 @@ import ModerationPlayground from '../components/ModerationPlayground.tsx';
         box-shadow: 0 1px 3px rgba(15,23,42,0.08); outline: none;
       }
       .gh-btn svg { display: block; }
+
+      /* ---- Hero ---- */
+      .hero {
+        flex: none; background: var(--surface); border-bottom: 1px solid var(--line);
+        padding: 44px 24px 40px;
+        display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+      }
+      .hero-pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 12.5px; font-weight: 500; color: var(--ink-soft);
+        background: #f1f5f9; border: 1px solid var(--line);
+        border-radius: 999px; padding: 6px 13px;
+      }
+      .hero-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+      .hero-title {
+        margin: 4px 0 0; font-size: 38px; line-height: 1.08; font-weight: 700;
+        letter-spacing: -0.028em; color: var(--ink); max-width: 720px;
+      }
+      .hero-sub {
+        margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink-soft); max-width: 600px;
+      }
+      @media (max-width: 640px) {
+        .hero { padding: 28px 20px 24px; }
+        .hero-title { font-size: 26px; }
+        .hero-sub { font-size: 13.5px; }
+        .hero-title br { display: none; }
+      }
 
       /* ---- Main / layout ---- */
       .main { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 24px; }
@@ -133,6 +160,7 @@ import ModerationPlayground from '../components/ModerationPlayground.tsx';
         font-family: var(--font); font-size: 13.5px; color: var(--ink); outline: none; background: #fff;
       }
       .caption-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+      .field-helper { margin-top: 7px; font-size: 11.5px; line-height: 1.45; color: var(--ink-muted); }
 
       .run-btn {
         margin-top: 18px; height: 44px; width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px;
