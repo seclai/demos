@@ -16,8 +16,11 @@ with violations, advisory flags, a quality score, and confidence.
 
 1. Browser POSTs `image` + optional `caption` to [src/pages/api/moderate.ts](src/pages/api/moderate.ts).
 2. The route calls `moderateListing()` in [src/lib/moderation.ts](src/lib/moderation.ts),
-   which builds the prompt and hands the image + text to the Seclai agent via the
-   thin SDK wrapper in [src/lib/seclai.ts](src/lib/seclai.ts).
+   which hands the image (and the caption, if any) to the Seclai agent via the
+   thin SDK wrapper in [src/lib/seclai.ts](src/lib/seclai.ts). The moderator
+   prompt lives on the **agent** (its `system_template`), not in the runtime
+   input — sending it as `input` trips Seclai's always-on prompt-injection
+   scanner.
 3. The agent (vision-enabled, Claude Sonnet, temperature 0) returns a JSON
    blob; we parse it tolerantly and **compute the verdict in code** from the
    violations rather than trusting whatever the model writes.
@@ -124,20 +127,25 @@ the MCP server (Pro+ plan) or from the dashboard. The agent must:
 - Use `dynamic_input` trigger (accepts text + file uploads).
 - Have a single `prompt_call` step on a **vision-capable** model
   (Claude Sonnet, GPT-4o, Gemini Vision) at temperature 0, with:
-  - `prompt_template`: `{{input}}\n{{agent.attachments}}`
-  - `system_template`: short framing telling the model to follow the
-    user-provided instructions verbatim and return ONLY a single JSON object.
+  - `system_template`: paste the full moderator instructions + JSON schema
+    exported as `MODERATOR_SYSTEM_PROMPT` in
+    [src/lib/moderation.ts](src/lib/moderation.ts). Putting it here (not in
+    the runtime `input`) keeps it out of the prompt-injection scanner.
+  - `prompt_template`: `{{input}}\n{{agent.attachments}}` — `{{input}}` is
+    just the (optional, short) seller caption.
 - Followed by an `extract_content` step (`expected_format: json`,
   `query: "$"`) and a `display_result` step (`template: "{{input}}"`).
 
-The full prompt the app sends — defining the JSON schema and severity
-guidance — lives in [src/lib/moderation.ts](src/lib/moderation.ts#L33-L60).
 After creating, update `SECLAI_AGENT_ID` in [.env.local](.env.local).
 
 ## Troubleshooting
 
 - **`SECLAI_API_KEY is not set`** — fill it into [.env.local](.env.local) and
   restart the dev server.
+- **`Seclai run failed … input_scan=unsafe`** — the prompt-injection scanner
+  flagged the runtime `input`. The moderator prompt must live in the agent's
+  `system_template`; only the (short) seller caption should be sent as
+  `input`. See "Recreating the agent" above.
 - **`Seclai run failed` / empty output** — confirm the agent's `prompt_call`
   step is on a vision-capable model and that the image is reaching the agent
   (check the run in the Seclai dashboard).

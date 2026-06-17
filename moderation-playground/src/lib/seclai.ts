@@ -80,7 +80,17 @@ export async function runAgent(
     : await runWithFiles(cfg, input, files);
 
   if (run.status !== 'completed') {
-    throw new Error(`Seclai run ${run.status} (${run.error_count} error(s)).`);
+    const attemptErr = run.attempts?.find((a) => a.error)?.error;
+    const gov = run.governance_input_status && run.governance_input_status !== 'safe'
+      ? ` governance_input=${run.governance_input_status}` : '';
+    const scan = run.input_scan_status && run.input_scan_status !== 'safe'
+      ? ` input_scan=${run.input_scan_status}` : '';
+    const blocked = run.blocked_policies?.length
+      ? ` blocked_by=${run.blocked_policies.map((p) => p.name ?? p.id).join(',')}` : '';
+    const detail = attemptErr ? `: ${attemptErr}` : '';
+    throw new Error(
+      `Seclai run ${run.status} (${run.error_count} error(s))${gov}${scan}${blocked}${detail}`,
+    );
   }
   const out = run.output;
   if (typeof out !== 'string' || !out.trim()) {

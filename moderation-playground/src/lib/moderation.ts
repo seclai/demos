@@ -1,7 +1,13 @@
-// App-specific layer for the Moderation Playground: the prompt we hand the
-// agent, the shape of the moderation result it returns, tolerant parsing of its
-// output, and the final verdict — which we COMPUTE in code from the violations
-// rather than trusting whatever decision the model writes.
+// App-specific layer for the Moderation Playground: the shape of the
+// moderation result the agent returns, tolerant parsing of its output, and the
+// final verdict — which we COMPUTE in code from the violations rather than
+// trusting whatever decision the model writes.
+//
+// The moderator system prompt lives on the agent itself (`system_template` of
+// the `prompt_call` step) — NOT here. Sending it as runtime `input` trips
+// Seclai's prompt-injection scanner ("You are a moderator… weapons, drugs…"
+// looks like a jailbreak to the ML classifier). We only send the optional
+// seller caption at runtime; the image goes via attachments.
 //
 // Kept separate from ./seclai.ts so the generic SDK wrapper stays reusable.
 
@@ -33,7 +39,13 @@ export interface ModerationResult {
   confidence: number;               // 0–1
 }
 
-const PROMPT = `You are a content moderator for an online marketplace. Examine the attached listing photo (and the optional seller caption that may accompany it) and judge it against typical marketplace listing policies. Respond with ONLY a single JSON object — no prose, no markdown fences.
+/**
+ * The moderator system prompt. This is NOT sent at runtime — paste it into the
+ * Seclai agent's `prompt_call` step as `system_template`. Kept here only as a
+ * source of truth so the repo documents what the agent should be configured to
+ * do. See README → "Recreating the agent".
+ */
+export const MODERATOR_SYSTEM_PROMPT = `You are a content moderator for an online marketplace. Examine the attached listing photo (and the optional seller caption that may accompany it) and judge it against typical marketplace listing policies. Respond with ONLY a single JSON object — no prose, no markdown fences.
 
 Check for policy violations such as: prohibited or restricted items (weapons, drugs, recalled goods, counterfeits, adult content), contact information shown in the image (phone numbers, emails, URLs), third-party or retailer watermarks, misleading or stock imagery used as the actual item, and unsafe or graphic content.
 
@@ -139,9 +151,9 @@ export async function moderateListing(
   platform?: Platform,
 ): Promise<ModerationResult> {
   const cfg = getConfig(platform);
-  const input = caption.trim()
-    ? `${PROMPT}\n\nSeller caption for this listing: ${caption.trim()}`
-    : PROMPT;
+  // Only the caption is sent as `input`. The moderator prompt lives in the
+  // agent's `system_template`; sending it at runtime trips the prompt scanner.
+  const input = caption.trim() ? `Seller caption: ${caption.trim()}` : '';
   const raw = await runAgent(cfg, input, [file]);
   return normalizeResult(parseAgentJson(raw));
 }
