@@ -11,7 +11,7 @@
 //
 // Kept separate from ./seclai.ts so the generic SDK wrapper stays reusable.
 
-import { getConfig, runAgent } from './seclai';
+import { getConfig, runAgent, streamAgent, getAgentModel } from './seclai';
 
 type Platform = { env?: Record<string, unknown> } | undefined;
 
@@ -155,6 +155,10 @@ export function normalizeResult(data: unknown): ModerationResult {
   };
 }
 
+// Only the caption is sent as `input`. The moderator prompt lives in the
+// agent's `system_template`; sending it at runtime trips the prompt scanner.
+const captionInput = (caption: string) => (caption.trim() ? `Seller caption: ${caption.trim()}` : '');
+
 /** Run a listing photo (and optional caption) through the agent. */
 export async function moderateListing(
   file: { bytes: Uint8Array; fileName: string; contentType: string },
@@ -162,9 +166,33 @@ export async function moderateListing(
   platform?: Platform,
 ): Promise<ModerationResult> {
   const cfg = getConfig(platform);
-  // Only the caption is sent as `input`. The moderator prompt lives in the
-  // agent's `system_template`; sending it at runtime trips the prompt scanner.
-  const input = caption.trim() ? `Seller caption: ${caption.trim()}` : '';
-  const raw = await runAgent(cfg, input, [file]);
+  const raw = await runAgent(cfg, captionInput(caption), [file]);
   return normalizeResult(parseAgentJson(raw));
+}
+
+/** Streaming variant: yields token text as it arrives, then the parsed result. */
+export type ModerationStreamEvent =
+  | { type: 'token'; token: string }
+  | { type: 'progress'; step: string; message: string }
+  | { type: 'result'; result: ModerationResult; model: string | null }
+  | { type: 'error'; message: string };
+
+export async function* moderateListingStream(
+  file: { bytes: Uint8Array; fileName: string; contentType: string },
+  caption: string,
+  platform?: Platform,
+): AsyncGenerator<ModerationStreamEvent> {
+  const cfg = getConfig(platform);
+  let full = '';
+  for await (const ev of streamAgent(cfg, captionInput(caption), [file])) {
+    if (ev.type === 'token') { full += ev.token; yield { type: 'token', token: ev.token }; }
+    else if (ev.type === 'progress') yield ev;
+    else if (ev.type === 'error') { yield { type: 'error', message: ev.message }; return; }
+    else if (ev.type === 'done') {
+      const output = ev.output || full;
+      if (!output.trim()) { yield { type: 'error', message: 'Run completed but produced no output.' }; return; }
+      const model = await getAgentModel(cfg);
+      yield { type: 'result', result: normalizeResult(parseAgentJson(output)), model };
+    }
+  }
 }

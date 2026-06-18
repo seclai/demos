@@ -17,7 +17,7 @@ interface ModerationResult {
   confidence: number;
 }
 
-type Status = 'empty' | 'loading' | 'done' | 'error';
+type Status = 'empty' | 'loading' | 'streaming' | 'done' | 'error';
 type View = 'card' | 'json';
 
 const ACCEPT = 'image/png,image/jpeg';
@@ -102,6 +102,7 @@ export default function ModerationPlayground() {
   const [result, setResult] = useState<ModerationResult | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [model, setModel] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -141,6 +142,7 @@ export default function ModerationPlayground() {
     setStatus('empty');
     setResult(null);
     setError(null);
+    setStreamText('');
   }, []);
 
   const onDrop = useCallback((e: DragEvent) => {
@@ -150,24 +152,58 @@ export default function ModerationPlayground() {
   }, [setImage]);
 
   const run = useCallback(async () => {
-    if (!file || status === 'loading') return;
+    if (!file || status === 'loading' || status === 'streaming') return;
     setStatus('loading');
     setError(null);
     setResult(null);
+    setStreamText('');
     try {
       const body = new FormData();
       body.append('image', file);
       if (caption.trim()) body.append('caption', caption.trim());
       const res = await fetch('/api/moderate', { method: 'POST', body });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `Request failed (${res.status}).`);
       }
-      setResult(data.result as ModerationResult);
-      setLatencyMs(typeof data.latencyMs === 'number' ? data.latencyMs : null);
-      setModel(typeof data.model === 'string' ? data.model : null);
-      setView('card');
-      setStatus('done');
+
+      // Parse the Server-Sent Events stream.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let acc = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const blocks = buf.split('\n\n');
+        buf = blocks.pop() ?? '';
+        for (const block of blocks) {
+          if (!block.trim()) continue;
+          let event = 'message';
+          let dataStr = '';
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event:')) event = line.slice(6).trim();
+            else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
+          }
+          let data: any;
+          try { data = JSON.parse(dataStr); } catch { continue; }
+          if (event === 'token') {
+            acc += data.token ?? '';
+            setStreamText(acc);
+            setStatus('streaming');
+            setView('json');
+          } else if (event === 'result') {
+            setResult(data.result as ModerationResult);
+            setLatencyMs(typeof data.latencyMs === 'number' ? data.latencyMs : null);
+            setModel(typeof data.model === 'string' ? data.model : null);
+            setView('card');
+            setStatus('done');
+          } else if (event === 'error') {
+            throw new Error(data.error || 'Moderation failed.');
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
       setStatus('error');
@@ -272,9 +308,9 @@ export default function ModerationPlayground() {
             />
             <div className="field-helper">The agent cross-checks your caption against the photo — mismatches show up as advisory flags.</div>
 
-            <button className="run-btn" onClick={run} disabled={!file || status === 'loading'}>
-              {status === 'loading' && <span className="run-spinner" />}
-              <span>{status === 'loading' ? 'Running…' : 'Run moderation'}</span>
+            <button className="run-btn" onClick={run} disabled={!file || status === 'loading' || status === 'streaming'}>
+              {(status === 'loading' || status === 'streaming') && <span className="run-spinner" />}
+              <span>{status === 'loading' || status === 'streaming' ? 'Running…' : 'Run moderation'}</span>
             </button>
             <div className="run-hint">Checks prohibited items, contact info in images, watermarks, stock photos, and image quality.</div>
           </section>
@@ -306,6 +342,12 @@ export default function ModerationPlayground() {
                 <div className="placeholder">
                   <span className="big-spinner" />
                   <div className="loading-text">running moderation…</div>
+                </div>
+              )}
+
+              {status === 'streaming' && (
+                <div className="json-wrap">
+                  <div className="json"><span className="json-line">{streamText}<span className="stream-caret" /></span></div>
                 </div>
               )}
 

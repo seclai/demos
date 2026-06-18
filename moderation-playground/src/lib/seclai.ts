@@ -103,19 +103,7 @@ export async function runAgent(
     ? await cfg.client.runAgentAndPoll(cfg.agentId, { input, metadata: METADATA, priority: false }, RUN_OPTS)
     : await runWithFiles(cfg, input, files);
 
-  if (run.status !== 'completed') {
-    const attemptErr = run.attempts?.find((a) => a.error)?.error;
-    const gov = run.governance_input_status && run.governance_input_status !== 'safe'
-      ? ` governance_input=${run.governance_input_status}` : '';
-    const scan = run.input_scan_status && run.input_scan_status !== 'safe'
-      ? ` input_scan=${run.input_scan_status}` : '';
-    const blocked = run.blocked_policies?.length
-      ? ` blocked_by=${run.blocked_policies.map((p) => p.name ?? p.id).join(',')}` : '';
-    const detail = attemptErr ? `: ${attemptErr}` : '';
-    throw new Error(
-      `Seclai run ${run.status} (${run.error_count} error(s))${gov}${scan}${blocked}${detail}`,
-    );
-  }
+  if (run.status !== 'completed') throw new Error(runFailureMessage(run));
   const out = run.output;
   if (typeof out !== 'string' || !out.trim()) {
     throw new Error('Seclai run completed but produced no text output.');
@@ -138,4 +126,59 @@ async function runWithFiles(
     { input_upload_ids: ids, metadata: METADATA, priority: false },
     RUN_OPTS,
   );
+}
+
+/** Build a human-readable error from a non-completed run payload. */
+function runFailureMessage(run: {
+  status?: string; error_count?: number;
+  attempts?: { error?: string | null }[];
+  governance_input_status?: string | null; input_scan_status?: string | null;
+  blocked_policies?: { name?: string | null; id?: string }[];
+}): string {
+  const attemptErr = run.attempts?.find((a) => a.error)?.error;
+  const gov = run.governance_input_status && run.governance_input_status !== 'safe'
+    ? ` governance_input=${run.governance_input_status}` : '';
+  const scan = run.input_scan_status && run.input_scan_status !== 'safe'
+    ? ` input_scan=${run.input_scan_status}` : '';
+  const blocked = run.blocked_policies?.length
+    ? ` blocked_by=${run.blocked_policies.map((p) => p.name ?? p.id).join(',')}` : '';
+  const detail = attemptErr ? `: ${attemptErr}` : '';
+  return `Seclai run ${run.status} (${run.error_count} error(s))${gov}${scan}${blocked}${detail}`;
+}
+
+/** A normalized streaming event from a run. `token` arrives only when the agent
+ *  has a streaming_result step; otherwise expect `progress` then `done`. */
+export type AgentStreamEvent =
+  | { type: 'token'; token: string }
+  | { type: 'progress'; step: string; message: string }
+  | { type: 'done'; output: string }
+  | { type: 'error'; message: string };
+
+/** Run the agent in streaming mode, yielding normalized events as they arrive. */
+export async function* streamAgent(
+  cfg: SeclaiConfig,
+  input: string,
+  files: { bytes: Uint8Array; fileName: string; contentType: string }[] = [],
+): AsyncGenerator<AgentStreamEvent> {
+  const ids: string[] = [];
+  if (input.trim()) ids.push(await uploadReady(cfg, new TextEncoder().encode(input), 'input.txt', 'text/plain'));
+  for (const f of files) ids.push(await uploadReady(cfg, f.bytes, f.fileName, f.contentType));
+  const body = ids.length
+    ? { input_upload_ids: ids, metadata: METADATA, priority: false }
+    : { input, metadata: METADATA, priority: false };
+
+  for await (const ev of cfg.client.runStreamingAgent(cfg.agentId, body, RUN_OPTS)) {
+    const d = (ev.data ?? {}) as Record<string, unknown>;
+    if (ev.event === 'stream_token' && typeof d.token === 'string') {
+      yield { type: 'token', token: d.token };
+    } else if (ev.event === 'step_progress') {
+      yield { type: 'progress', step: String(d.step_name ?? ''), message: String(d.message ?? '') };
+    } else if (ev.event === 'done') {
+      if (d.status && d.status !== 'completed') { yield { type: 'error', message: runFailureMessage(d) }; return; }
+      yield { type: 'done', output: typeof d.output === 'string' ? d.output : '' };
+    } else if (ev.event === 'error' || ev.event === 'timeout') {
+      yield { type: 'error', message: String(d.message ?? `run ${ev.event}`) };
+      return;
+    }
+  }
 }
