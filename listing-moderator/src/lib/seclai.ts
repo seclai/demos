@@ -90,7 +90,7 @@ async function uploadReady(
   return up.id;
 }
 
-const METADATA = { source: 'moderation-playground' };
+const METADATA = { source: 'listing-moderator' };
 const RUN_OPTS = { timeoutMs: 120_000 } as const;
 
 /** Run the agent with text and/or file attachments; return its text output. */

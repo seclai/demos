@@ -4,7 +4,7 @@
   "software_version": "2.4.6",
   "agent": {
     "name": "Marketplace Listing Moderator (Production)",
-    "description": "Vision-enabled agent for the moderation playground. Examines a marketplace listing photo (with optional seller caption), checks it against marketplace listing policies, and returns a strict JSON moderation report (is_listing_photo, violations, advisory_flags, quality_score, confidence).",
+    "description": "Vision-enabled agent for the Listing Moderator app. Examines a marketplace listing photo (with optional seller caption), checks it against marketplace listing policies, and returns a strict JSON moderation report (is_listing_photo, violations, advisory_flags, quality_score, confidence).",
     "definition": {
       "name": "Marketplace Listing Moderator",
       "tags": [],
@@ -36,7 +36,7 @@
           "max_output_total_bytes": 26214400
         }
       ],
-      "description": "Vision-enabled agent for the moderation playground. Examines a marketplace listing photo (with optional seller caption), checks it against marketplace listing policies, and returns a strict JSON moderation report (is_listing_photo, violations, advisory_flags, quality_score, confidence)."
+      "description": "Vision-enabled agent for the Listing Moderator app. Examines a marketplace listing photo (with optional seller caption), checks it against marketplace listing policies, and returns a strict JSON moderation report (is_listing_photo, violations, advisory_flags, quality_score, confidence)."
     },
     "schema_version": "v1",
     "default_evaluation_tier": null,

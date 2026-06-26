@@ -91,7 +91,7 @@ function JsonView({ data }: { data: unknown }) {
   );
 }
 
-export default function ModerationPlayground() {
+export default function ListingModerator() {
   const [status, setStatus] = useState<Status>('empty');
   const [view, setView] = useState<View>('card');
   const [checksOpen, setChecksOpen] = useState(false);
@@ -216,7 +216,7 @@ export default function ModerationPlayground() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true"><span className="brand-diamond" /></span>
-          <span className="brand-title">Moderation Playground</span>
+          <span className="brand-title">Listing Moderator</span>
           <a
             className="brand-pill"
             href="https://seclai.com"
@@ -241,7 +241,7 @@ export default function ModerationPlayground() {
         </button>
         <a
           className="gh-btn"
-          href="https://github.com/seclai/demos/tree/main/moderation-playground"
+          href="https://github.com/seclai/demos/tree/main/listing-moderator"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="View source on GitHub"

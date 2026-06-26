@@ -1,5 +1,5 @@
 ---
-import ModerationPlayground from '../components/ModerationPlayground.tsx';
+import ListingModerator from '../components/ListingModerator.tsx';
 ---
 
 <!doctype html>
@@ -8,7 +8,7 @@ import ModerationPlayground from '../components/ModerationPlayground.tsx';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Moderation Playground — powered by Seclai</title>
+    <title>Listing Moderator — powered by Seclai</title>
     <meta name="description" content="Upload a marketplace listing photo and check it against listing policies — approve, review, or reject with violations and quality score." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,7 +18,7 @@ import ModerationPlayground from '../components/ModerationPlayground.tsx';
     />
   </head>
   <body>
-    <ModerationPlayground client:load />
+    <ListingModerator client:load />
 
     <style is:global>
       :root {

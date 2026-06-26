@@ -1,4 +1,4 @@
-// App-specific layer for the Moderation Playground: the shape of the
+// App-specific layer for the Listing Moderator: the shape of the
 // moderation result the agent returns, tolerant parsing of its output, and the
 // final verdict — which we COMPUTE in code from the violations rather than
 // trusting whatever decision the model writes.

@@ -1,4 +1,4 @@
-# Moderation Playground
+# Listing Moderator
 
 A small Astro + React app that moderates marketplace listing photos through a
 [Seclai](https://seclai.com) agent. Drop in a JPG/PNG (and optional caption),
@@ -25,7 +25,7 @@ with violations, advisory flags, a quality score, and confidence.
 3. The agent (vision-enabled, Claude Sonnet, temperature 0) returns a JSON
    blob; we parse it tolerantly and **compute the verdict in code** from the
    violations rather than trusting whatever the model writes.
-4. The React component in [src/components/ModerationPlayground.tsx](src/components/ModerationPlayground.tsx)
+4. The React component in [src/components/ListingModerator.tsx](src/components/ListingModerator.tsx)
    renders the result as a card or raw JSON.
 
 ## Prerequisites
@@ -168,7 +168,7 @@ agents/
   marketplace-listing-moderator.production.json    # importable Seclai agent (prod)
 src/
   components/
-    ModerationPlayground.tsx   # React island: dropzone, caption, result UI
+    ListingModerator.tsx   # React island: dropzone, caption, result UI
   lib/
     seclai.ts                  # Generic @seclai/sdk wrapper (env, upload, run)
     moderation.ts              # App-specific: system prompt, schema, parser, decide()
