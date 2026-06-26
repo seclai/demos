@@ -5,6 +5,14 @@ A small Astro + React app that moderates marketplace listing photos through a
 and the agent returns a strict JSON verdict — approve, review, or reject —
 with violations, advisory flags, a quality score, and confidence.
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/seclai/demos/tree/main/listing-moderator)
+
+> One-click deploy clones this app into your own GitHub account, provisions the
+> Worker (and the `SESSION` KV namespace), and builds it. You still add your
+> Seclai credentials as secrets afterward — see
+> [One-click deploy](#option-a--one-click-deploy-to-cloudflare) for the two
+> post-deploy steps.
+
 ## Stack
 
 - **Astro 6** with `output: 'server'` (Cloudflare adapter) — keeps the Seclai
@@ -105,6 +113,34 @@ drop in a listing photo, and click **Run moderation**.
 The app is wired for [Cloudflare Workers](https://workers.cloudflare.com) via
 [`@astrojs/cloudflare`](https://docs.astro.build/en/guides/integrations-guide/cloudflare/).
 The whole SSR app ships as one Worker.
+
+### Option A — one-click "Deploy to Cloudflare"
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/seclai/demos/tree/main/listing-moderator)
+
+Click the button. Cloudflare clones this subdirectory into a new repo under your
+own GitHub account, runs `npm run build`, provisions the Worker, and creates the
+`SESSION` KV namespace automatically.
+
+It can't bake in secrets, so after the first deploy finishes:
+
+1. **Add your Seclai credentials.** In the Cloudflare dashboard, open the new
+   Worker → **Settings → Variables and Secrets**, and add `SECLAI_API_KEY` and
+   `SECLAI_AGENT_ID` (use your **production** agent id). `SECLAI_BASE_URL` is
+   optional — only set it for a custom Seclai host. Or from the cloned repo:
+   ```bash
+   wrangler secret put SECLAI_API_KEY
+   wrangler secret put SECLAI_AGENT_ID
+   ```
+2. **Redeploy** so the Worker picks up the secrets (dashboard **Deployments →
+   Retry**, or `wrangler deploy`).
+
+> Need the production agent first? Import
+> [agents/marketplace-listing-moderator.production.json](agents/marketplace-listing-moderator.production.json)
+> into Seclai (see [step 2](#2-create-the-seclai-agent-import-the-json)) and use
+> its id for `SECLAI_AGENT_ID`.
+
+### Option B — Wrangler CLI
 
 ### 1. Install Wrangler and log in
 
