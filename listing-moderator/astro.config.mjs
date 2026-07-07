@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import cloudflare from '@astrojs/cloudflare';
+import tailwindcss from '@tailwindcss/vite';
 
 // SSR via @astrojs/cloudflare so we deploy as a Cloudflare Worker and keep the
 // Seclai API key off the browser. In v13 the adapter uses @cloudflare/vite-plugin
@@ -12,4 +13,7 @@ export default defineConfig({
     imageService: 'compile', // no Astro <Image>, skip auto IMAGES binding
   }),
   integrations: [react()],
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });
