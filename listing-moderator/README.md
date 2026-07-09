@@ -29,14 +29,23 @@ violations, advisory flags, a quality score, and confidence.
 3. The vision agent returns a JSON blob; we parse it tolerantly and **compute the verdict in code** from the violations rather than trusting the model's own verdict.
 4. [src/components/ListingModerator.tsx](src/components/ListingModerator.tsx) renders the result as a card or raw JSON.
 
+## Prerequisites
+
+- **Node 20+** (22 recommended) and npm.
+- A **[Seclai](https://seclai.com) account** on a **paid plan** — running the
+  vision agent requires it. See [pricing](https://seclai.com/pricing) for current
+  tiers. You'll use the account for the agent and an API key.
+- A **[Cloudflare](https://cloudflare.com) account** — only if you want to deploy
+  (not needed to run locally).
+
 ## Cloning & running
 
 1. Fork or clone the repo.
-2. Run `npm install` (Node 20+, 22 recommended).
+2. Run `npm install`.
 3. Import a Seclai agent from [`agents/`](agents/) and copy its ID. Start with
-   [`marketplace-listing-moderator.development.json`](agents/marketplace-listing-moderator.development.json)
+   [`listing-moderator.development.json`](agents/listing-moderator.development.json)
    (Seclai dashboard → **Agents → Import**); a
-   [production](agents/marketplace-listing-moderator.production.json) export is
+   [production](agents/listing-moderator.production.json) export is
    there too.
 4. Create a Seclai API key (**Account Settings → API Keys → Create** — shown once).
 5. Run `cp .env.example .env.local` and fill in `SECLAI_API_KEY` and
