@@ -1,0 +1,10 @@
+/* Uses the CSS Custom Highlight API, so the page's DOM is never modified. */
+::highlight(seclai-block) {
+  background-color: rgba(255, 214, 10, 0.16);
+}
+::highlight(seclai-word) {
+  background-color: #ffd60a;
+  color: #000;
+  text-decoration: underline 2px #e0a800;
+  text-underline-offset: 3px;
+}

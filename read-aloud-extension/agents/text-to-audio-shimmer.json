@@ -1,0 +1,63 @@
+{
+  "export_version": "5",
+  "exported_at": "2026-10-09T21:43:53+00:00",
+  "software_version": "2.12.4",
+  "agent": {
+    "name": "Text to Audio – Shimmer",
+    "description": "Narrates the input text as an MP3 (OpenAI voice: shimmer, female). Used by the Read Aloud browser extension.",
+    "definition": {
+      "name": "Text to Audio – Shimmer",
+      "tags": [],
+      "description": "Narrates the input text as an MP3 (OpenAI voice: shimmer, female). Used by the Read Aloud browser extension.",
+      "child_steps": [
+        {
+          "id": "narrate",
+          "name": "Narrate text",
+          "model": "openai_gpt_4o_mini_tts",
+          "voice": "shimmer",
+          "step_type": "generate_audio",
+          "audio_format": "mp3",
+          "prompt_template": "{{input}}",
+          "child_steps": [
+            {
+              "id": "show-audio",
+              "name": "Return audio",
+              "step_type": "display_result"
+            }
+          ]
+        }
+      ]
+    },
+    "schema_version": "v5",
+    "default_evaluation_tier": null,
+    "evaluation_mode": "eval_and_retry",
+    "sampling_config": null,
+    "max_retries": 3,
+    "retry_on_failure": true,
+    "prompt_model_auto_upgrade_strategy": "none",
+    "prompt_model_auto_rollback_enabled": false,
+    "prompt_model_auto_rollback_triggers": null,
+    "created_at": "2026-10-09T20:55:49.842440+00:00",
+    "updated_at": "2026-10-09T20:55:49.842440+00:00"
+  },
+  "trigger": {
+    "trigger_type": "dynamic_input",
+    "name": null,
+    "input": null,
+    "input_content_type": null,
+    "allow_empty_input": false,
+    "default_input": null,
+    "metadata_": null,
+    "knowledge_base_id": null,
+    "schedules": null,
+    "email_allowed_senders": null,
+    "email_ignore_auto_generated": true,
+    "email_require_sender_auth": true,
+    "email_queue_on_quota": false
+  },
+  "alert_configs": null,
+  "evaluation_criteria": null,
+  "governance_policies": null,
+  "dependencies": null,
+  "solutions": null
+}

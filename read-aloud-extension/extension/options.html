@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Seclai Read Aloud – Options</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; max-width: 520px; margin: 32px auto; padding: 0 16px; color: #222; }
+    label { display: block; margin-top: 16px; font-weight: 600; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; font: inherit; }
+    .hint { color: #666; font-size: 12px; font-weight: normal; }
+    h2 { font-size: 15px; margin: 28px 0 0; }
+    button { margin-top: 20px; padding: 8px 16px; font: inherit; cursor: pointer; }
+    #status { margin-left: 12px; color: #0a7d32; }
+  </style>
+</head>
+<body>
+  <h1>Seclai Read Aloud</h1>
+  <label>Seclai API key
+    <div class="hint">Create one at seclai.com → Account Settings → API Keys. Stored only in this browser profile.</div>
+    <input id="apiKey" type="password" autocomplete="off">
+  </label>
+
+  <h2>Voice agents</h2>
+  <div class="hint">Import the agents in this project's <code>agents/</code> folder into your Seclai account and paste their IDs. Leave blank to use the defaults.</div>
+  <label>Nova (female, warm)<input id="agent-nova" type="text" placeholder="6ecece33-997a-4143-ab16-930425c8dd99"></label>
+  <label>Shimmer (female, soft)<input id="agent-shimmer" type="text" placeholder="a4c25414-3d01-409d-a1cc-3677f6685760"></label>
+  <label>Onyx (male, deep)<input id="agent-onyx" type="text" placeholder="3cfbf87b-ca06-4e05-a37d-fc8389f80aaf"></label>
+
+  <button id="save">Save</button><span id="status"></span>
+  <script src="options.js"></script>
+</body>
+</html>
