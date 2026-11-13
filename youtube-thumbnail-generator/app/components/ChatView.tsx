@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRevalidator } from "react-router";
 
 import { saveUrl } from "~/lib/download";
+import { DEFAULT_VARIANTS, expectedImageCount } from "~/lib/expected-images";
 import {
   API_BASE,
   attachmentUrl,
@@ -15,8 +16,6 @@ import { Composer, type ComposerHandle } from "./Composer";
 import { type GalleryImage, ImageCard, imageFileName, SkeletonCard } from "./ImageCard";
 import { Lightbox } from "./Lightbox";
 import { ReplyText } from "./ReplyText";
-
-const DEFAULT_VARIANTS = 4;
 
 interface Slot {
   max: number;
@@ -240,6 +239,10 @@ export function ChatView({
   );
 
   const liveTurn = turns.size + 1;
+  const previousCount = [...turns.values()].reverse().find((imgs) => imgs.length > 0)?.length ?? null;
+  const placeholders = pending
+    ? expectedImageCount({ input: pending.input, streamedText: run.text, previousCount })
+    : 0;
   const liveImages: GalleryImage[] =
     run.runId && run.attachments.length
       ? run.attachments
@@ -317,7 +320,7 @@ export function ChatView({
                   ) : (
                     running && (
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {Array.from({ length: DEFAULT_VARIANTS }, (_, i) => (
+                        {Array.from({ length: placeholders }, (_, i) => (
                           <SkeletonCard key={i} number={i + 1} />
                         ))}
                       </div>

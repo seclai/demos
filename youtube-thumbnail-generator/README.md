@@ -70,7 +70,7 @@ Without a flag, the script changes nothing. It prints what it would change.
 You can make the same edit by hand in the Seclai app. The `memory_bank_id` in the export is a placeholder. When you import the file, bind it to a **conversation** memory bank.
 
 Other knobs on the `design` step:
-- **Variants per reply.** The instructions default to 4. Raise `max_generation_calls_per_run` and `max_generation_credits_per_run` along with it. `DEFAULT_VARIANTS` in [app/components/ChatView.tsx](app/components/ChatView.tsx) sets how many skeletons show while a run is going.
+- **Variants per reply.** The instructions default to 4. Raise `max_generation_calls_per_run` and `max_generation_credits_per_run` along with it. `DEFAULT_VARIANTS` in [app/lib/expected-images.ts](app/lib/expected-images.ts) is the first-turn placeholder count. Later turns follow the streamed numbered list, a count the user asked for, or the previous reply's count.
 - **Channel style.** Add your colours, typeface style or a fixed title position to the system instructions.
 - **Public figures.** The "Public figures and other brands" policy only records. Switch it to enforce to block such requests.
 

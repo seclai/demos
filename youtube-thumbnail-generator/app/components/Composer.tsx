@@ -60,6 +60,10 @@ export interface ComposerHandle {
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
+// Only needs to be unique within the page. (`crypto.randomUUID` exists only in
+// secure contexts, so it would throw on a plain-http LAN address.)
+let nextLocalId = 0;
+
 export const Composer = forwardRef<
   ComposerHandle,
   {
@@ -134,7 +138,7 @@ export const Composer = forwardRef<
         continue;
       }
       const item: PendingFile = {
-        localId: crypto.randomUUID(),
+        localId: `file-${++nextLocalId}`,
         kind,
         name: file.name,
         preview: URL.createObjectURL(file),
