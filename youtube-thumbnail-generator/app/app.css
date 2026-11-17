@@ -28,6 +28,11 @@
   --on-accent: #ffffff;
   --user: #fde8ea;
   --danger: #b42318;
+
+  /* Theme the @seclai/react viewer with ours. */
+  --seclai-accent: var(--accent);
+  --seclai-accent-hover: var(--accent-hover);
+  --seclai-on-accent: var(--on-accent);
 }
 
 @media (prefers-color-scheme: dark) {

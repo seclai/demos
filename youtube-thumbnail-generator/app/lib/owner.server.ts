@@ -15,7 +15,6 @@ function ownerCookie() {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 365,
   });
   return cookie;
@@ -33,7 +32,14 @@ export const ownerMiddleware: MiddlewareFunction<Response> = async ({ request, c
   const response = await next();
   if (ownerId) return response;
 
-  const setCookie = await jar.serialize(context.get(ownerContext));
+  // `Secure` only over HTTPS: browsers drop a Secure cookie on plain http (other
+  // than localhost), which would lose every session on a LAN address. Behind a
+  // proxy that terminates TLS, set COOKIE_SECURE=true.
+  const forced = process.env.COOKIE_SECURE?.trim().toLowerCase();
+  const secure = forced
+    ? ["true", "1", "yes"].includes(forced)
+    : new URL(request.url).protocol === "https:";
+  const setCookie = await jar.serialize(context.get(ownerContext), { secure });
   try {
     response.headers.append("Set-Cookie", setCookie);
     return response;

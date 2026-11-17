@@ -1,4 +1,4 @@
-import { useAgentRun, type AgentRunStep } from "@seclai/react";
+import { MediaViewer, useAgentRun, type AgentAttachment, type AgentRunStep } from "@seclai/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRevalidator } from "react-router";
 
@@ -14,8 +14,12 @@ import {
 
 import { Composer, type ComposerHandle } from "./Composer";
 import { type GalleryImage, ImageCard, imageFileName, SkeletonCard } from "./ImageCard";
-import { Lightbox } from "./Lightbox";
 import { ReplyText } from "./ReplyText";
+
+/** How often to check for a reply that's still being generated. */
+const POLL_MS = 8_000;
+/** Longer than any run can take (the handlers stop waiting at 11 minutes). */
+const AWAIT_REPLY_MS = 15 * 60 * 1000;
 
 interface Slot {
   max: number;
@@ -107,20 +111,20 @@ function ImageGrid({
   );
 }
 
-function useElapsed(running: boolean): number {
-  const [seconds, setSeconds] = useState(0);
+/** Seconds since `startedAt` (from `useAgentRun`), ticking while running. */
+function useElapsed(startedAt: number | null, running: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!running) return;
-    const start = Date.now();
-    setSeconds(0);
-    const id = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [running]);
-  return seconds;
+  return startedAt === null ? 0 : Math.max(0, Math.floor((now - startedAt) / 1000));
 }
 
-function WaitNote({ running }: { running: boolean }) {
-  const seconds = useElapsed(running);
+function WaitNote({ startedAt, running }: { startedAt: number | null; running: boolean }) {
+  const seconds = useElapsed(startedAt, running);
   if (!running) return null;
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   return (
@@ -187,6 +191,7 @@ export function ChatView({
               key: `${m.runId}:${a.id}`,
               url: attachmentUrl(m.runId!, a),
               name: a.name,
+              mime: a.mime,
               number: i + 1,
               turn,
             }))
@@ -201,6 +206,21 @@ export function ChatView({
   const running = run.status === "running";
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
 
+  // A run whose browser went away (another session, "continue in background", a
+  // closed tab) keeps going, and the server saves its reply when it finishes.
+  // Until then the session ends with the user's message: check back for it.
+  const last = messages.at(-1);
+  const awaitingSince = !pending && last?.role === "user" ? last.createdAt : null;
+  const gaveUp = awaitingSince !== null && Date.now() - awaitingSince > AWAIT_REPLY_MS;
+  const awaitingReply = awaitingSince !== null && !gaveUp;
+  useEffect(() => {
+    if (!awaitingReply) return;
+    const id = setInterval(() => {
+      if (revalidator.state === "idle") void revalidator.revalidate();
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [awaitingReply, revalidator]);
+
   // Follow the conversation as it grows, unless the user has scrolled up.
   const stick = useRef(true);
   useEffect(() => {
@@ -208,7 +228,12 @@ export function ChatView({
     if (el && stick.current) el.scrollTo({ top: el.scrollHeight });
   }, [messages.length, pending, run.text, run.steps.length, run.status]);
 
+  // The latest message count, readable after an await.
+  const messageCount = useRef(messages.length);
+  messageCount.current = messages.length;
+
   async function send(turn: PendingTurn) {
+    const before = messageCount.current;
     setStartError(null);
     setPending(turn);
     stick.current = true;
@@ -219,9 +244,10 @@ export function ChatView({
     });
     await revalidator.revalidate();
     setPending(null);
-    // Rejected before the run started (for example no credits): nothing was
-    // stored, so keep the turn around to retry.
-    if (result.status === "failed" && !result.runId && !result.text) {
+    // The server stores the turn (and, if the API refused the run, the error).
+    // If nothing new arrived, the request never reached it, for example a
+    // network error: keep the turn around to retry.
+    if (result.status === "failed" && messageCount.current === before) {
       setStartError({ message: result.error ?? "The run failed to start.", turn });
     }
   }
@@ -238,6 +264,20 @@ export function ChatView({
     [gallery],
   );
 
+  // The package's viewer shows each image's name as its label and uses it as
+  // the download's filename, so name them by round and number.
+  const viewerImages = useMemo<AgentAttachment[]>(
+    () =>
+      gallery.map((g) => ({
+        id: g.key,
+        name: `round-${g.turn}-image-${g.number}.${g.mime.split("/")[1]?.replace("jpeg", "jpg") ?? "png"}`,
+        mime: g.mime,
+        bytes: null,
+        url: g.url,
+      })),
+    [gallery],
+  );
+
   const liveTurn = turns.size + 1;
   const previousCount = [...turns.values()].reverse().find((imgs) => imgs.length > 0)?.length ?? null;
   const placeholders = pending
@@ -247,7 +287,7 @@ export function ChatView({
     run.runId && run.attachments.length
       ? run.attachments
           .filter((a) => a.mime.startsWith("image/"))
-          .map((a, i) => ({ key: `live:${a.id}`, url: a.url, name: a.name, number: i + 1, turn: liveTurn }))
+          .map((a, i) => ({ key: `live:${a.id}`, url: a.url, name: a.name, mime: a.mime, number: i + 1, turn: liveTurn }))
       : [];
 
   return (
@@ -298,12 +338,28 @@ export function ChatView({
                   )}
                   {m.status === "cancelled" && (
                     <p className="mt-1 text-xs text-muted">
-                      Stopped. The run may still have finished on Seclai, but its images weren't saved here.
+                      Stopped before this reply was saved. The run may still have finished on Seclai.
                     </p>
                   )}
                 </div>
               </div>
             ),
+          )}
+
+          {awaitingReply && (
+            <div className="flex gap-3" aria-live="polite">
+              <Avatar />
+              <p className="flex flex-1 items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden />
+                Still generating this reply in the background. It will appear here when it's done.
+              </p>
+            </div>
+          )}
+          {gaveUp && (
+            <p className="text-xs text-muted">
+              No reply was saved for this message. The server may have restarted while it was generating. You can send
+              it again.
+            </p>
           )}
 
           {pending && (
@@ -312,7 +368,7 @@ export function ChatView({
               <div className="flex gap-3" aria-live="polite">
                 <Avatar />
                 <div className="min-w-0 flex-1 space-y-3">
-                  <WaitNote running={running} />
+                  <WaitNote startedAt={run.startedAt} running={running} />
                   {running && <StepList steps={run.steps} />}
                   {(run.text || running) && <ReplyText text={run.text} streaming={running} />}
                   {liveImages.length > 0 ? (
@@ -330,9 +386,10 @@ export function ChatView({
                     <button
                       type="button"
                       onClick={run.cancel}
+                      title="The run keeps going on Seclai. Its reply is saved here when it finishes."
                       className="rounded-md border border-border px-3 py-1 text-xs hover:bg-surface-2"
                     >
-                      Stop
+                      Continue in background
                     </button>
                   )}
                 </div>
@@ -359,7 +416,7 @@ export function ChatView({
             maxFiles={slot.max}
             contentTypes={slot.contentTypes}
             hasHeadshot={hasHeadshot}
-            busy={running || !!pending}
+            busy={running || !!pending || awaitingReply}
             onSend={(input, uploads) => send({ input, uploads })}
           />
           <p className="mt-2 text-center text-[11px] text-muted">
@@ -368,7 +425,12 @@ export function ChatView({
         </div>
       </div>
 
-      <Lightbox images={gallery} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} />
+      <MediaViewer
+        attachments={viewerImages}
+        index={lightbox}
+        onIndexChange={setLightbox}
+        onClose={() => setLightbox(null)}
+      />
     </main>
   );
 }

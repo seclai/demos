@@ -7,6 +7,5 @@ export default [
   ]),
   route("s/new", "routes/session-new.ts"),
   route("api/seclai/:action", "routes/api.seclai.ts"),
-  route("api/sessions/:sessionId/uploads", "routes/api.uploads.ts"),
   route("files/uploads/:uploadId", "routes/files.uploads.ts"),
 ] satisfies RouteConfig;

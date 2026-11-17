@@ -3,8 +3,7 @@ import { data, redirect } from "react-router";
 import { ChatView } from "~/components/ChatView";
 import { getAcceptedSlot } from "~/lib/attachment-refs.server";
 import { ownerContext } from "~/lib/owner.server";
-import { getUploadRoute } from "~/lib/routes.server";
-import { getStore } from "~/lib/services.server";
+import { getSeclai, getStore } from "~/lib/services.server";
 
 import type { Route } from "./+types/session";
 
@@ -33,7 +32,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (intent === "delete") {
     const paths = store.deleteSession(ownerId, params.sessionId);
     if (!paths) throw data(null, { status: 404 });
-    await getUploadRoute().removeFiles(paths);
+    await getSeclai().removeFiles(paths);
     const current = form.get("current") === "1";
     return current ? redirect("/") : { ok: true };
   }

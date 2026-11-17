@@ -6,6 +6,7 @@ export interface GalleryImage {
   key: string;
   url: string;
   name: string | null;
+  mime: string;
   /** 1-based, matching the agent's numbered list for its turn. */
   number: number;
   /** 1-based count of the agent's replies in the session. */

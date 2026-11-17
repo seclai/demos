@@ -1,5 +1,7 @@
 // Shapes shared by the server and the browser.
 
+import { createEndpoints } from "@seclai/react";
+
 export type UploadKind = "headshot" | "style";
 
 export interface SessionSummary {
@@ -40,11 +42,12 @@ export interface ChatMessage {
 
 export const API_BASE = "/api/seclai";
 
-/** Same URL `@seclai/react` builds for a run attachment. */
+/** The `@seclai/handlers` routes, as `useAgentRun` builds them. */
+export const endpoints = createEndpoints({ basePath: API_BASE });
+
+/** A stored run attachment, through the download handler. */
 export function attachmentUrl(runId: string, attachment: StoredAttachment): string {
-  const params = new URLSearchParams({ runId, attachmentId: attachment.id });
-  if (attachment.name) params.set("name", attachment.name);
-  return `${API_BASE}/download?${params}`;
+  return endpoints.download(runId, attachment.id, attachment.name);
 }
 
 export function uploadUrl(id: string): string {

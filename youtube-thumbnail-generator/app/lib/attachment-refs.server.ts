@@ -25,9 +25,7 @@ function remember(slot: AcceptedSlot, ttl: number): AcceptedSlot {
 export async function getAcceptedSlot(): Promise<AcceptedSlot> {
   if (cached && Date.now() < cached.until) return cached.slot;
   try {
-    const res = await getSeclai().attachmentReferences(
-      new Request("http://local/api/seclai/attachment-references"),
-    );
+    const res = await getSeclai().attachmentReferences();
     if (!res.ok) {
       log.warn("couldn't read the agent's accepted attachments; assuming 3 images", { status: res.status });
       return remember(FALLBACK, FAILURE_TTL_MS);

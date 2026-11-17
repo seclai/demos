@@ -1,6 +1,7 @@
+import { uploadFile } from "@seclai/react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
-import type { UploadInfo, UploadKind } from "~/lib/types";
+import { endpoints, type UploadInfo, type UploadKind } from "~/lib/types";
 
 interface PendingFile {
   localId: string;
@@ -107,14 +108,14 @@ export const Composer = forwardRef<
   const defaultKind: UploadKind = hasHeadshot || headshotPending ? "style" : "headshot";
 
   async function uploadOne(item: PendingFile, file: File) {
-    const form = new FormData();
-    form.set("file", file);
-    form.set("kind", item.kind);
+    // The handlers' upload route; the session and role ride in the query string
+    // for the server's `authorizeUpload` and `onUpload`.
+    const params = new URLSearchParams({ sessionId, kind: item.kind });
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/uploads`, { method: "POST", body: form });
-      const body = (await res.json().catch(() => ({}))) as UploadInfo & { error?: string };
-      if (!res.ok) throw new Error(body.error ?? `Upload failed (status ${res.status}).`);
-      setFiles((all) => all.map((f) => (f.localId === item.localId ? { ...f, status: "ready", upload: body } : f)));
+      // The server's `onUpload` answers with our own upload record, not the
+      // handler's default `UploadResult`.
+      const upload = (await uploadFile({ ...endpoints, upload: `${endpoints.upload}?${params}` }, file)) as unknown as UploadInfo;
+      setFiles((all) => all.map((f) => (f.localId === item.localId ? { ...f, status: "ready", upload } : f)));
     } catch (e) {
       const message = e instanceof Error ? e.message : "Upload failed.";
       setFiles((all) => all.map((f) => (f.localId === item.localId ? { ...f, status: "error", error: message } : f)));
