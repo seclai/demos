@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { askedCount, countListedImages, expectedImageCount } from "../app/lib/expected-images";
+import { askedCount, countListedImages, expectedImageCount, isPlainUndo } from "../app/lib/expected-images";
 
 describe("expectedImageCount", () => {
   it("defaults to 4 on the first turn", () => {
@@ -32,5 +32,16 @@ describe("expectedImageCount", () => {
     expect(askedCount("Title: I built a generator in 15 minutes")).toBeNull();
     expect(askedCount("I like image 3 best")).toBeNull();
     expect(countListedImages("Version 2 is better")).toBe(0);
+  });
+
+  it("expects no image for a plain undo", () => {
+    expect(expectedImageCount({ input: "undo that", streamedText: "", previousCount: 1 })).toBe(0);
+    expect(expectedImageCount({ input: "Go back to the previous version.", streamedText: "", previousCount: 2 })).toBe(0);
+  });
+
+  it("still expects images when an undo comes with a change", () => {
+    expect(isPlainUndo("undo that and make the title yellow")).toBe(false);
+    expect(isPlainUndo("I like image 2, undo the rest")).toBe(false);
+    expect(expectedImageCount({ input: "revert, but keep the red title", streamedText: "", previousCount: 1 })).toBe(1);
   });
 });

@@ -6,6 +6,9 @@
 // 2. A count the user asked for: "give me 2 versions", "three more options".
 // 3. The previous reply's image count: refining one image usually returns one.
 // 4. The agent's default for a fresh design: 4.
+//
+// A plain undo ("undo that", "go back to the previous one") makes no image:
+// the agent only says which version the next change starts from.
 
 export const DEFAULT_VARIANTS = 4;
 /** The agent's per-reply cap on image generations. */
@@ -20,6 +23,14 @@ const ASKED = new RegExp(
 
 function clamp(n: number): number {
   return Math.min(Math.max(n, 1), MAX_VARIANTS);
+}
+
+const UNDO = /^\s*(?:please\s+)?(?:undo|revert|go back|roll back)\b/i;
+const MORE = /\b(?:and|but|then|make|change|add|try|use|give)\b/i;
+
+/** The message only asks to undo, with no change to make after it. */
+export function isPlainUndo(input: string): boolean {
+  return UNDO.test(input) && !MORE.test(input);
 }
 
 /** Items in the numbered list streamed so far, or 0. */
@@ -48,5 +59,6 @@ export function expectedImageCount({
 }): number {
   const listed = countListedImages(streamedText);
   if (listed > 0) return clamp(listed);
+  if (isPlainUndo(input)) return 0;
   return askedCount(input) ?? (previousCount ? clamp(previousCount) : DEFAULT_VARIANTS);
 }
