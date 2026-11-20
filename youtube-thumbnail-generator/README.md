@@ -33,7 +33,7 @@ The app keeps every session. Go back to an earlier one from the sidebar and pick
 
 - **Node 22.22+**, which React Router 8 requires. `node:sqlite` is built in.
 - A **[Seclai](https://seclai.com) account** with credits. Image generation is billed per image; see [What it costs](#what-it-costs).
-- A Seclai **API key**: **Settings → API Keys → Create**. It is shown once.
+- A Seclai **API key**: sign in, open **API Keys** in the sidebar, and click **Create API key**. It is shown once.
 
 ## Running it
 

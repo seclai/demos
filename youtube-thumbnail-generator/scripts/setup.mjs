@@ -29,8 +29,8 @@ if (!apiKey || apiKey === "your_api_key_here") {
   console.error(
     "SECLAI_API_KEY is not set.\n\n" +
       "  1. cp .env.example .env\n" +
-      "  2. Create a key at https://app.seclai.com → Settings → API Keys\n" +
-      "  3. Paste it into .env as SECLAI_API_KEY\n",
+      "  2. Sign in at https://seclai.com and open API Keys in the sidebar\n" +
+      "  3. Click Create API key and paste it into .env as SECLAI_API_KEY (it's only shown once)\n",
   );
   process.exit(1);
 }
