@@ -40,7 +40,7 @@ The app keeps every session. Go back to an earlier one from the sidebar and pick
 ```sh
 npm install
 cp .env.example .env            # add SECLAI_API_KEY and a SESSION_SECRET (openssl rand -hex 32)
-npm run setup -- --create       # creates the agent from the gallery and makes it stream
+npm run setup -- --create       # creates the agent from the gallery
                                 # → paste the printed SECLAI_AGENT_ID into .env
 npm run setup                   # checks the agent; should report it's ready
 npm run dev                     # http://localhost:5173
@@ -56,20 +56,12 @@ Production build: `npm run build && npm start`.
 |---|---|---|
 | The trigger accepts images | The photo and style references are uploaded with a message | No: use the gallery agent |
 | `session_id` is a declared metadata key | The API refuses runs with undeclared custom keys, and the chat steps key the conversation on it | Yes |
-| The reply step is `streaming_result` | The gallery agent ships with `display_result`, which returns the reply only at the end | Yes |
 
 Without a flag, the script changes nothing. It prints what it would change.
 
 ## Customizing the agent
 
-[agents/youtube-thumbnail-chat.json](agents/youtube-thumbnail-chat.json) is the gallery agent with the one change this app makes. Under the `prompt_call` step,
-
-```diff
-- { "step_type": "display_result", "id": "show_images", "name": "Show the images", "html_format": false }
-+ { "step_type": "streaming_result", "id": "stream_reply", "name": "Stream the reply" }
-```
-
-You can make the same edit by hand in the Seclai app. The `memory_bank_id` in the export is a placeholder. When you import the file, bind it to a **conversation** memory bank.
+[agents/youtube-thumbnail-chat.json](agents/youtube-thumbnail-chat.json) is an export of the gallery agent; the app needs no changes to it. The `memory_bank_id` in the export is a placeholder. When you import the file, bind it to a **conversation** memory bank.
 
 Other knobs on the `design` step:
 - **Variants per reply.** The instructions default to 4. Raise `max_generation_calls_per_run` and `max_generation_credits_per_run` along with it. `DEFAULT_VARIANTS` in [app/lib/expected-images.ts](app/lib/expected-images.ts) is the first-turn placeholder count. Later turns follow the streamed numbered list, a count the user asked for, or the previous reply's count. A plain "undo that" shows none, because the agent replies to it without making an image.
@@ -102,14 +94,14 @@ INFO  [seclai] first token run_id=8b1d07aa-… ms=21300
 INFO  [seclai] run done run_id=8b1d07aa-… status=completed attachments=4 tokens=201 ms=74900
 ```
 
-A run that finishes with no streamed tokens logs a warning, because it usually means the agent still uses `display_result`. Set `LOG_LEVEL=debug` to also see every event, token and keepalive.
+A run that finishes with no streamed tokens logs a warning, because it usually means the agent was made from an older version of the gallery template. Set `LOG_LEVEL=debug` to also see every event, token and keepalive.
 
 ## Troubleshooting
 
 - **`SECLAI_API_KEY` / `SECLAI_AGENT_ID` / `SESSION_SECRET is not set`.** Fill them in `.env` and restart.
 - **"The Seclai API rejected the server's credentials".** The API key is wrong or revoked.
 - **The run is refused with a 400 about metadata.** `session_id` isn't declared on the trigger. Run `npm run setup -- --apply`.
-- **The reply appears all at once instead of streaming.** The agent still ends in `display_result`. Run `npm run setup` to check.
+- **The reply appears all at once instead of streaming.** The agent was made from an older version of the gallery template. Remove `SECLAI_AGENT_ID` from `.env` and run `npm run setup -- --create` to make a new one.
 - **The run ends as failed right away.** A governance policy may have blocked the message, for example an attempt to change the designer's rules. The error shows in the chat. The run's details are in the Seclai dashboard.
 
 ## License

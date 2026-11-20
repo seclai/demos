@@ -2,21 +2,18 @@
 // Checks (and optionally fixes) the Seclai agent this app runs.
 //
 //   npm run setup                 # check only, change nothing
-//   npm run setup -- --apply      # make the agent stream, declare `session_id`
+//   npm run setup -- --apply      # declare `session_id`
 //   npm run setup -- --create     # create the agent from the gallery, then --apply
 //
-// The app needs three things from the agent:
+// The app needs two things from the agent:
 //   1. A trigger that accepts images (the gallery agent's `images` slot).
 //   2. `session_id` declared as a run metadata key: the API refuses a run with
 //      an undeclared custom key, and the chat-turn steps key the conversation on it.
-//   3. A `streaming_result` step under the `prompt_call`, so the reply streams
-//      token by token. The gallery agent ships with `display_result`, which
-//      only returns the reply at the end.
+// The gallery agent already streams its reply, so the steps aren't checked.
 
-import { Seclai, SeclaiAPIStatusError } from "@seclai/sdk";
+import { Seclai } from "@seclai/sdk";
 
 const TEMPLATE = "youtube_thumbnail_chat";
-const STREAMING_STEP = { step_type: "streaming_result", id: "stream_reply", name: "Stream the reply" };
 
 const args = new Set(process.argv.slice(2));
 const create = args.has("--create");
@@ -102,62 +99,6 @@ if (!agent.trigger_id) {
     warn("`session_id` isn't a declared metadata key, so runs from this app would be refused. Run with --apply.");
   }
 }
-
-// ─── 3. streaming_result ────────────────────────────────────────────────────
-
-/** Finds the result step that is a direct child of a prompt_call. */
-function findResultStep(node, parent = null) {
-  if (!node || typeof node !== "object") return null;
-  if (
-    (node.step_type === "display_result" || node.step_type === "streaming_result") &&
-    parent?.step_type === "prompt_call"
-  ) {
-    return { step: node, parent };
-  }
-  for (const child of node.child_steps ?? []) {
-    const found = findResultStep(child, node);
-    if (found) return found;
-  }
-  return null;
-}
-
-async function ensureStreaming(retry = true) {
-  const { definition, change_id } = await client.getAgentDefinition(agentId);
-  const found = findResultStep(definition);
-  if (!found) {
-    problems++;
-    warn("No result step under a prompt_call was found; can't switch the agent to streaming.");
-    return;
-  }
-  if (found.step.step_type === "streaming_result") {
-    ok("Streams its reply (`streaming_result`)");
-    return;
-  }
-
-  const { child_steps, ...before } = found.step;
-  const after = { ...STREAMING_STEP, ...(child_steps ? { child_steps } : {}) };
-  if (!apply) {
-    problems++;
-    warn("The reply arrives all at once (`display_result`). Run with --apply to make it stream:");
-    console.log(`      - ${JSON.stringify(before)}\n      + ${JSON.stringify(STREAMING_STEP)}`);
-    return;
-  }
-
-  const index = found.parent.child_steps.indexOf(found.step);
-  found.parent.child_steps[index] = after;
-  try {
-    await client.updateAgentDefinition(agentId, { definition, expected_change_id: change_id });
-    ok(`Switched "${before.name}" (display_result) to "${STREAMING_STEP.name}" (streaming_result)`);
-  } catch (err) {
-    if (retry && err instanceof SeclaiAPIStatusError && err.statusCode === 409) {
-      console.log("  … the definition changed while we were editing it; reading it again");
-      return ensureStreaming(false);
-    }
-    throw err;
-  }
-}
-
-await ensureStreaming();
 
 // ─── Summary ────────────────────────────────────────────────────────────────
 
