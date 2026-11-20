@@ -42,7 +42,7 @@ with it.
 
 - **Chrome, Brave, or another Chromium browser.**
 - A **[Seclai](https://seclai.com) account** and an API key
-  (**Account Settings → API Keys → Create**; it's shown once).
+  (open **API Keys** in the sidebar → **Create API key**; it's shown once).
 
 ## Setup
 

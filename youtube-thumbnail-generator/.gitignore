@@ -1,0 +1,9 @@
+node_modules/
+build/
+.react-router/
+data/
+.env
+
+# This demo uses npm
+pnpm-lock.yaml
+pnpm-workspace.yaml
