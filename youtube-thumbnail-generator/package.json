@@ -17,8 +17,8 @@
   "dependencies": {
     "@react-router/node": "^8.5.1",
     "@react-router/serve": "^8.5.1",
-    "@seclai/handlers": "^0.0.10",
-    "@seclai/react": "^0.0.10",
+    "@seclai/handlers": "^0.0.21",
+    "@seclai/react": "^0.0.21",
     "@seclai/sdk": "^1.9.0",
     "isbot": "^5.2.3",
     "react": "^19.3.1",

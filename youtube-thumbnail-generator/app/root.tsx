@@ -10,7 +10,7 @@ import {
 import { ownerMiddleware } from "~/lib/owner.server";
 
 import type { Route } from "./+types/root";
-// Styles for the `@seclai/react` image viewer. Before app.css, so ours win.
+// Styles for the `@seclai/react` viewer, replies and run progress. Before app.css, so ours win.
 import "@seclai/react/styles.css";
 import "./app.css";
 

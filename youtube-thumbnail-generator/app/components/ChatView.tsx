@@ -1,8 +1,7 @@
-import { MediaViewer, useAgentRun, type AgentAttachment, type AgentRunStep } from "@seclai/react";
+import { MarkdownContent, MediaViewer, RunProgress, saveFiles, useAgentRun, type AgentAttachment } from "@seclai/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRevalidator } from "react-router";
 
-import { saveUrl } from "~/lib/download";
 import { DEFAULT_VARIANTS, expectedImageCount } from "~/lib/expected-images";
 import {
   API_BASE,
@@ -14,7 +13,6 @@ import {
 
 import { Composer, type ComposerHandle } from "./Composer";
 import { type GalleryImage, ImageCard, imageFileName, SkeletonCard } from "./ImageCard";
-import { ReplyText } from "./ReplyText";
 
 /** How often to check for a reply that's still being generated. */
 const POLL_MS = 8_000;
@@ -96,12 +94,7 @@ function ImageGrid({
       {images.length > 1 && (
         <button
           type="button"
-          onClick={async () => {
-            for (const img of images) {
-              saveUrl(img.url, imageFileName(img));
-              await new Promise((r) => setTimeout(r, 400));
-            }
-          }}
+          onClick={() => void saveFiles(images.map((img) => ({ source: img.url, filename: imageFileName(img) })))}
           className="mt-2 text-xs font-medium text-muted underline-offset-2 hover:text-text hover:underline"
         >
           Download all {images.length}
@@ -111,52 +104,24 @@ function ImageGrid({
   );
 }
 
-/** Seconds since `startedAt` (from `useAgentRun`), ticking while running. */
-function useElapsed(startedAt: number | null, running: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!running) return;
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [running]);
-  return startedAt === null ? 0 : Math.max(0, Math.floor((now - startedAt) / 1000));
-}
-
-function WaitNote({ startedAt, running }: { startedAt: number | null; running: boolean }) {
-  const seconds = useElapsed(startedAt, running);
-  if (!running) return null;
-  const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+/**
+ * The agent's reply. While it streams, a caret follows the text. Until the first
+ * of it arrives, `RunProgress` shows the run is going.
+ */
+function Reply({ text, streaming = false }: { text: string; streaming?: boolean }) {
+  if (!text.trim()) return null;
   return (
-    <p className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
-      <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden />
-      <span className="flex-1">
-        {seconds < 150
-          ? "Generating images usually takes a minute or two. You can keep this tab open while they're made."
-          : "Still working: larger batches can take a few minutes."}
-      </span>
-      <span className="tabular-nums" aria-label={`${seconds} seconds elapsed`}>
-        {clock}
-      </span>
-    </p>
+    <div className={`leading-relaxed ${streaming ? "streaming" : ""}`}>
+      <MarkdownContent content={text} streaming={streaming} />
+    </div>
   );
 }
 
-function StepList({ steps }: { steps: AgentRunStep[] }) {
-  if (steps.length === 0) return <p className="text-sm text-muted">Starting the run…</p>;
-  return (
-    <ol className="space-y-0.5 text-xs text-muted">
-      {steps.map((s, i) => (
-        <li key={s.id} className="flex gap-2">
-          <span aria-hidden>{i === steps.length - 1 ? "●" : "✓"}</span>
-          <span>
-            <span className="font-medium text-text">{s.name}</span>
-            {s.message && <span> · {s.message}</span>}
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
+/** The note next to the clock while a round of images is generating. */
+function waitMessage(seconds: number): string {
+  return seconds < 150
+    ? "Generating images usually takes a minute or two. You can keep this tab open while they're made."
+    : "Still working: larger batches can take a few minutes.";
 }
 
 export function ChatView({
@@ -279,9 +244,14 @@ export function ChatView({
   );
 
   const liveTurn = turns.size + 1;
-  const previousCount = [...turns.values()].reverse().find((imgs) => imgs.length > 0)?.length ?? null;
+  const hasImages = [...turns.values()].some((imgs) => imgs.length > 0);
   const placeholders = pending
-    ? expectedImageCount({ input: pending.input, streamedText: run.text, previousCount })
+    ? expectedImageCount({
+        input: pending.input,
+        streamedText: run.text,
+        hasImages,
+        hasUploads: pending.uploads.length > 0,
+      })
     : 0;
   const liveImages: GalleryImage[] =
     run.runId && run.attachments.length
@@ -319,7 +289,7 @@ export function ChatView({
               <div key={m.id} className="flex gap-3">
                 <Avatar />
                 <div className="min-w-0 flex-1">
-                  {m.content && <ReplyText text={m.content} />}
+                  {m.content && <Reply text={m.content} />}
                   <ImageGrid images={turns.get(m.id) ?? []} onOpen={open} onRefine={refine} />
                   {m.status === "failed" && (
                     <div className="mt-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
@@ -368,9 +338,8 @@ export function ChatView({
               <div className="flex gap-3" aria-live="polite">
                 <Avatar />
                 <div className="min-w-0 flex-1 space-y-3">
-                  <WaitNote startedAt={run.startedAt} running={running} />
-                  {running && <StepList steps={run.steps} />}
-                  {(run.text || running) && <ReplyText text={run.text} streaming={running} />}
+                  <RunProgress run={run} message={waitMessage} />
+                  <Reply text={run.text} streaming={running} />
                   {liveImages.length > 0 ? (
                     <ImageGrid images={liveImages} onOpen={() => {}} onRefine={refine} />
                   ) : (

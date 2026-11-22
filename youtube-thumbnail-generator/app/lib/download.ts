@@ -1,24 +1,5 @@
-// Browser-side download helpers.
-
-export function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
-
-export function saveUrl(url: string, filename: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.append(a);
-  a.click();
-  a.remove();
-}
+// Browser-side download helpers. Saving a URL or Blob is `saveFile` from
+// `@seclai/react`; these are the YouTube-specific parts.
 
 export function baseName(name: string | null, fallback: string): string {
   return (name ?? fallback).replace(/\.[a-z0-9]+$/i, "");

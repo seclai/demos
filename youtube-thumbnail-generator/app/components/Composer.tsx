@@ -108,13 +108,10 @@ export const Composer = forwardRef<
   const defaultKind: UploadKind = hasHeadshot || headshotPending ? "style" : "headshot";
 
   async function uploadOne(item: PendingFile, file: File) {
-    // The handlers' upload route; the session and role ride in the query string
-    // for the server's `authorizeUpload` and `onUpload`.
-    const params = new URLSearchParams({ sessionId, kind: item.kind });
+    // The session and role go with the upload as params, for the server's
+    // `authorizeUpload` and `onUpload`, which answers with our own upload record.
     try {
-      // The server's `onUpload` answers with our own upload record, not the
-      // handler's default `UploadResult`.
-      const upload = (await uploadFile({ ...endpoints, upload: `${endpoints.upload}?${params}` }, file)) as unknown as UploadInfo;
+      const upload = await uploadFile<UploadInfo>(endpoints, file, { params: { sessionId, kind: item.kind } });
       setFiles((all) => all.map((f) => (f.localId === item.localId ? { ...f, status: "ready", upload } : f)));
     } catch (e) {
       const message = e instanceof Error ? e.message : "Upload failed.";

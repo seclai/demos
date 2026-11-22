@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// Checks (and optionally fixes) the Seclai agent this app runs.
+// Checks (and optionally fixes) the Seclai agent this app runs, and the
+// .env values setup can fill in itself.
 //
 //   npm run setup                 # check only, change nothing
-//   npm run setup -- --apply      # declare `session_id`
-//   npm run setup -- --create     # create the agent from the gallery, then --apply
+//   npm run setup -- --apply      # declare `session_id`; generate SESSION_SECRET
+//   npm run setup -- --create     # create the agent from the gallery, save its id
+//                                 # to .env, then --apply
 //
 // The app needs two things from the agent:
 //   1. A trigger that accepts images (the gallery agent's `images` slot).
@@ -11,9 +13,12 @@
 //      an undeclared custom key, and the chat-turn steps key the conversation on it.
 // The gallery agent already streams its reply, so the steps aren't checked.
 
+import { randomBytes } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Seclai } from "@seclai/sdk";
 
 const TEMPLATE = "youtube_thumbnail_chat";
+const ENV_FILE = new URL("../.env", import.meta.url);
 
 const args = new Set(process.argv.slice(2));
 const create = args.has("--create");
@@ -37,6 +42,25 @@ const ok = (msg) => console.log(`  ✓ ${msg}`);
 const warn = (msg) => console.log(`  ✗ ${msg}`);
 let problems = 0;
 
+// ─── Session secret ─────────────────────────────────────────────────────────
+// Only an unset or placeholder secret is replaced: a new one signs out every
+// browser, so an existing secret is left alone.
+
+const sessionSecret = process.env.SESSION_SECRET;
+if (sessionSecret && sessionSecret !== "change_me") {
+  ok("SESSION_SECRET is set");
+} else if (apply) {
+  if (saveEnv("SESSION_SECRET", randomBytes(32).toString("hex"))) {
+    ok("Generated SESSION_SECRET and saved it to .env");
+  } else {
+    problems++;
+    warn("Couldn't write .env. Set SESSION_SECRET in it yourself (for example `openssl rand -hex 32`).");
+  }
+} else {
+  problems++;
+  warn("SESSION_SECRET isn't set. Run with --apply to generate one.");
+}
+
 // ─── 0. Create from the gallery ─────────────────────────────────────────────
 
 if (create) {
@@ -52,6 +76,12 @@ if (create) {
   });
   agentId = agent.id;
   ok(`Created agent ${agent.id} (with its conversation memory bank)`);
+  // Save the id right away, so a failed check below can't lead to a second --create.
+  if (saveEnv("SECLAI_AGENT_ID", agentId)) {
+    ok("Saved SECLAI_AGENT_ID to .env");
+  } else {
+    warn(`Couldn't write .env. Add this to it yourself:\n\n      SECLAI_AGENT_ID=${agentId}\n`);
+  }
 }
 
 if (!agentId) {
@@ -103,11 +133,25 @@ if (!agent.trigger_id) {
 // ─── Summary ────────────────────────────────────────────────────────────────
 
 console.log("");
-if (create) {
-  console.log(`Add this to .env:\n\n  SECLAI_AGENT_ID=${agentId}\n`);
-}
 if (problems) {
   console.log(`${problems} problem${problems === 1 ? "" : "s"} found.`);
   process.exit(1);
 }
 console.log("The agent is ready. Start the app with `npm run dev`.");
+
+// Sets `key` in .env: replaces its existing line (the .env.example template has
+// one for each key), or appends it. Creates .env if there isn't one.
+function saveEnv(key, value) {
+  try {
+    const line = `${key}=${value}`;
+    const text = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, "utf8") : "";
+    const pattern = new RegExp(`^[ \\t]*${key}[ \\t]*=.*$`, "m");
+    const next = pattern.test(text)
+      ? text.replace(pattern, line)
+      : `${text}${text && !text.endsWith("\n") ? "\n" : ""}${line}\n`;
+    writeFileSync(ENV_FILE, next);
+    return true;
+  } catch {
+    return false;
+  }
+}

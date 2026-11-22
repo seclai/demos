@@ -29,10 +29,19 @@
   --user: #fde8ea;
   --danger: #b42318;
 
-  /* Theme the @seclai/react viewer with ours. */
+  /* Theme @seclai/react (the viewer, replies and run progress) with ours. */
+  --seclai-font: var(--font-sans);
+  --seclai-text: var(--text);
+  --seclai-muted: var(--muted);
+  --seclai-border: var(--border);
+  --seclai-surface: var(--surface-2);
+  --seclai-surface-hover: var(--border);
+  --seclai-code-surface: var(--surface-2);
   --seclai-accent: var(--accent);
   --seclai-accent-hover: var(--accent-hover);
   --seclai-on-accent: var(--on-accent);
+  --seclai-error: var(--danger);
+  --seclai-radius: 0.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,8 +84,21 @@ body {
   .skeleton { animation: none; }
 }
 
-.caret::after,
-.streaming > :last-child::after {
+/* The agent's numbered items: our accent badges, rather than the package's
+   dark ones, a little smaller than the badges on the image cards. */
+.seclai-markdown-number {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+/* A caret after the reply while it streams: after the last paragraph, or
+   after the last item of a list. */
+.streaming .seclai-markdown > :last-child:not(ol, ul)::after,
+.streaming .seclai-markdown > ol:last-child > li:last-child > :last-child::after,
+.streaming .seclai-markdown > ul:last-child > li:last-child::after {
   content: "▍";
   margin-left: 1px;
   animation: blink 1s steps(1) infinite;

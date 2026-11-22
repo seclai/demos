@@ -4,8 +4,9 @@
 // 1. The reply itself: the agent lists the images it made in a numbered list,
 //    so once that list starts streaming, its length is the best estimate.
 // 2. A count the user asked for: "give me 2 versions", "three more options".
-// 3. The previous reply's image count: refining one image usually returns one.
-// 4. The agent's default for a fresh design: 4.
+// 3. What the agent's instructions say it makes without a count: 4 variants
+//    for a fresh design (the first round, or a message that brings new
+//    uploads), and one image when it changes an existing one.
 //
 // A plain undo ("undo that", "go back to the previous one") makes no image:
 // the agent only says which version the next change starts from.
@@ -50,15 +51,18 @@ export function askedCount(input: string): number | null {
 export function expectedImageCount({
   input,
   streamedText,
-  previousCount,
+  hasImages,
+  hasUploads,
 }: {
   input: string;
   streamedText: string;
-  /** Images in the last reply that had any; null for the first turn. */
-  previousCount: number | null;
+  /** An earlier reply in the session made images, so this is likely a change to one. */
+  hasImages: boolean;
+  /** This message attaches images: a new photo or style starts a fresh design. */
+  hasUploads: boolean;
 }): number {
   const listed = countListedImages(streamedText);
   if (listed > 0) return clamp(listed);
   if (isPlainUndo(input)) return 0;
-  return askedCount(input) ?? (previousCount ? clamp(previousCount) : DEFAULT_VARIANTS);
+  return askedCount(input) ?? (!hasImages || hasUploads ? DEFAULT_VARIANTS : 1);
 }

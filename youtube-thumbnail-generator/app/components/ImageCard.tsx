@@ -1,6 +1,7 @@
+import { saveFile } from "@seclai/react";
 import { useState } from "react";
 
-import { baseName, saveBlob, toYouTubeJpeg } from "~/lib/download";
+import { baseName, toYouTubeJpeg } from "~/lib/download";
 
 export interface GalleryImage {
   key: string;
@@ -35,7 +36,7 @@ export function ImageCard({
     setBusy(true);
     setError(null);
     try {
-      saveBlob(await toYouTubeJpeg(image.url), imageFileName(image, "jpg"));
+      saveFile(await toYouTubeJpeg(image.url), imageFileName(image, "jpg"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Download failed.");
     } finally {
@@ -65,6 +66,7 @@ export function ImageCard({
         <a
           href={image.url}
           download={imageFileName(image)}
+          title="The full-size original, as the agent made it"
           className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-on-accent hover:bg-accent-hover"
         >
           Download

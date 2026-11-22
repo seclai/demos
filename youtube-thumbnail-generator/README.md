@@ -11,7 +11,7 @@ The app keeps every session. Go back to an earlier one from the sidebar and pick
 
 - **React Router 8** (framework mode, SSR). It is the React successor of Remix. Remix 3 dropped React, and `@seclai/react` needs React.
 - **`@seclai/handlers`** is mounted at `/api/seclai/:action`. It is the server side of the agent: it streams runs over SSE, proxies uploads and downloads, and keeps the API key on the server. Its hooks carry the app's access control, saving and logging.
-- **`@seclai/react`**: `useAgentRun` drives the live, streaming reply, and `uploadFile` / `createEndpoints` talk to the handlers.
+- **`@seclai/react`**: `useAgentRun` drives the live, streaming reply, `RunProgress` shows the run's steps and elapsed time, `MarkdownContent` renders the replies, `MediaViewer` shows images full size, and `uploadFile` / `createEndpoints` talk to the handlers. Its stylesheet is themed with the app's colours through `--seclai-*` variables in [app/app.css](app/app.css).
 - **`@seclai/sdk`** is used by `npm run setup` to create and check the agent.
 - **SQLite** through Node's built-in `node:sqlite`, with no native addon. It holds sessions, uploads and chat turns.
 - **Tailwind CSS 4**.
@@ -21,12 +21,12 @@ The app keeps every session. Go back to an earlier one from the sidebar and pick
 1. **Sessions.** Each browser gets an anonymous, signed `httpOnly` cookie, set in [app/lib/owner.server.ts](app/lib/owner.server.ts). Sessions, uploads and messages are stored against it in [app/lib/store.server.ts](app/lib/store.server.ts). A session's random id is also the agent's `metadata.session_id`. The agent keys its conversation memory on that id, so each session is its own design conversation.
 2. **The server side is `@seclai/handlers`**, mounted at `/api/seclai/:action` and configured in [app/lib/seclai.server.ts](app/lib/seclai.server.ts). The app adds only what it alone knows, through the package's hooks, passing the browser's owner id with `withContext({ ownerId })`:
    - **`authorizeRun`** checks that the session and uploads belong to this browser, stores the user's turn, and adds a line telling the agent which file is the headshot and which is a style reference.
-   - **`authorizeUpload`** checks the session and the role (both in the upload URL's query string), and **`onUpload`** keeps a local copy to show in the chat. `maxBytes` and `checkContentType` cap uploads at 10 MB and the agent's image types.
+   - **`authorizeUpload`** checks the session and the role, which the composer sends as upload params (`uploadFile`'s `params` option), and **`onUpload`** keeps a local copy to show in the chat. `maxBytes` and `checkContentType` cap uploads at 10 MB and the agent's image types.
    - **`authorizeDownload`** serves images only from this browser's runs.
-3. **Runs.** `useAgentRun().start({ input, uploadIds, sessionId })` posts to `/api/seclai/run`, and the browser renders the stream: steps, tokens, then the images, which replace 16:9 skeleton cards.
+3. **Runs.** `useAgentRun().start({ input, uploadIds, sessionId })` posts to `/api/seclai/run`, and the browser renders the stream: steps and a clock (`RunProgress`), tokens (`MarkdownContent` with `streaming`), then the images, which replace 16:9 skeleton cards. The reply's numbered list keeps the agent's own numbers, in badges that match the image cards.
    - **Saving the reply.** **`onRunEnd`** stores the reply, with its text and image ids. The handlers call it before passing `done` on to the browser, so the reply is in place when the page reloads the session.
    - **When the browser leaves.** With **`keepReadingAfterDisconnect`**, a run whose browser left (another session, **Continue in background**, a closed tab) is still read to the end and its reply saved. The chat shows "still generating" until it arrives.
-   - **Up-front refusals.** If the API refuses a run up front (no credits, for example), the error is stored as the reply.
+   - **Up-front refusals.** If the API refuses a run up front (no credits, for example), the handlers call **`onRunEnd`** with a failed outcome, so the error is stored as the reply the same way.
 4. **Images** stay with the run on Seclai. The app stores only their ids, and shows them through the handlers' `download` (`createEndpoints().download` from `@seclai/react`).
 
 ## Prerequisites
@@ -39,9 +39,9 @@ The app keeps every session. Go back to an earlier one from the sidebar and pick
 
 ```sh
 npm install
-cp .env.example .env            # add SECLAI_API_KEY and a SESSION_SECRET (openssl rand -hex 32)
-npm run setup -- --create       # creates the agent from the gallery
-                                # → paste the printed SECLAI_AGENT_ID into .env
+cp .env.example .env            # add SECLAI_API_KEY
+npm run setup -- --create       # creates the agent from the gallery and saves
+                                # SECLAI_AGENT_ID and a SESSION_SECRET to .env
 npm run setup                   # checks the agent; should report it's ready
 npm run dev                     # http://localhost:5173
 ```
@@ -56,6 +56,7 @@ Production build: `npm run build && npm start`.
 |---|---|---|
 | The trigger accepts images | The photo and style references are uploaded with a message | No: use the gallery agent |
 | `session_id` is a declared metadata key | The API refuses runs with undeclared custom keys, and the chat steps key the conversation on it | Yes |
+| `SESSION_SECRET` is set in `.env` | It signs the cookie that ties sessions to a browser | Yes: generates one, only if it's unset or still `change_me` |
 
 Without a flag, the script changes nothing. It prints what it would change.
 
