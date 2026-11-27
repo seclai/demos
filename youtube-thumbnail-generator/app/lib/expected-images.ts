@@ -1,0 +1,68 @@
+// How many placeholder cards to show while a run is generating images. The
+// stream doesn't say how many images are coming, so this is a best guess:
+//
+// 1. The reply itself: the agent lists the images it made in a numbered list,
+//    so once that list starts streaming, its length is the best estimate.
+// 2. A count the user asked for: "give me 2 versions", "three more options".
+// 3. What the agent's instructions say it makes without a count: 4 variants
+//    for a fresh design (the first round, or a message that brings new
+//    uploads), and one image when it changes an existing one.
+//
+// A plain undo ("undo that", "go back to the previous one") makes no image:
+// the agent only says which version the next change starts from.
+
+export const DEFAULT_VARIANTS = 4;
+/** The agent's per-reply cap on image generations. */
+export const MAX_VARIANTS = 6;
+
+const WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, a: 1, an: 1, single: 1 };
+const NOUNS = "variants?|versions?|options?|images?|thumbnails?|designs?|takes?|alternatives?|variations?|concepts?|ideas?";
+const ASKED = new RegExp(
+  `\\b(\\d+|one|two|three|four|five|six|a|an|single)\\s+(?:more\\s+|new\\s+|different\\s+|other\\s+)?(?:${NOUNS})\\b`,
+  "i",
+);
+
+function clamp(n: number): number {
+  return Math.min(Math.max(n, 1), MAX_VARIANTS);
+}
+
+const UNDO = /^\s*(?:please\s+)?(?:undo|revert|go back|roll back)\b/i;
+const MORE = /\b(?:and|but|then|make|change|add|try|use|give)\b/i;
+
+/** The message only asks to undo, with no change to make after it. */
+export function isPlainUndo(input: string): boolean {
+  return UNDO.test(input) && !MORE.test(input);
+}
+
+/** Items in the numbered list streamed so far, or 0. */
+export function countListedImages(text: string): number {
+  return text.split("\n").filter((line) => /^\s*\d+[.)]\s+\S/.test(line)).length;
+}
+
+/** A count the user asked for in their message, if any. */
+export function askedCount(input: string): number | null {
+  const m = ASKED.exec(input);
+  if (!m) return null;
+  const raw = m[1].toLowerCase();
+  const n = /^\d+$/.test(raw) ? Number(raw) : WORDS[raw];
+  return n ? clamp(n) : null;
+}
+
+export function expectedImageCount({
+  input,
+  streamedText,
+  hasImages,
+  hasUploads,
+}: {
+  input: string;
+  streamedText: string;
+  /** An earlier reply in the session made images, so this is likely a change to one. */
+  hasImages: boolean;
+  /** This message attaches images: a new photo or style starts a fresh design. */
+  hasUploads: boolean;
+}): number {
+  const listed = countListedImages(streamedText);
+  if (listed > 0) return clamp(listed);
+  if (isPlainUndo(input)) return 0;
+  return askedCount(input) ?? (!hasImages || hasUploads ? DEFAULT_VARIANTS : 1);
+}

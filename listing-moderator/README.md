@@ -47,7 +47,7 @@ violations, advisory flags, a quality score, and confidence.
    (Seclai dashboard → **Agents → Import**); a
    [production](agents/listing-moderator.production.json) export is
    there too.
-4. Create a Seclai API key (**Account Settings → API Keys → Create** — shown once).
+4. Create a Seclai API key (open **API Keys** in the sidebar → **Create API key** — shown once).
 5. Run `cp .env.example .env.local` and fill in `SECLAI_API_KEY` and
    `SECLAI_AGENT_ID` (`SECLAI_BASE_URL` is optional).
 6. Run `npm run dev` and open the printed URL (typically `http://localhost:4321`),
